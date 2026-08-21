@@ -1,0 +1,7 @@
+[
+    { "vendeur": "serges", "chiffre_affaire": 4000000, "objectif": 30000000 },
+    { "vendeur": "junior", "chiffre_affaire": 20000000, "objectif": 4000000 },
+    { "vendeur": "marie", "chiffre_affaire": 2400000, "objectif": 400000 },
+    { "vendeur": "jordane", "chiffre_affaire": 500000, "objectif": 330000000 },
+    { "vendeur": "fabrice", "chiffre_affaire": 200000, "objectif": 120000 }
+]
