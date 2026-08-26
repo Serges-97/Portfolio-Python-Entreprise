@@ -36,6 +36,11 @@ def executer_logiciel():
                 succes = data_base.enregistrer_vente_sql(nom_client , nom_article , mnt_ht , v_tva , ttc)
 
                 if succes :
+
+                    # on appel notre generateur de pdf ,  et on lui passe toute les variables de la vente en parrametre
+                    print("Generation du reçus officiel en cours...")
+                    operation.generer_recu_pdf(nom_client , nom_article , quantite , mnt_ht , v_tva , ttc)
+                    
                     # on affiche un re§us de caisse transparent pour le client 
                     print("\n ===== REçUS  DE CAISSE EMIS =====")
                     print(f"client : {nom_client}")
