@@ -1,87 +1,95 @@
+# =====================================================================
+# MODULE CALCULS ET DESIGN : operation.py (Version 5.0)
+# =====================================================================
 from fpdf import FPDF
 
-# definition du taux officiel de la tva au cameroun dans une variable globale (19.25%)
-taux_tva = 19.25 / 100
+# Taux officiel de TVA en vigueur au Cameroun (19.25%)
+TAUX_TVA = 19.25 / 100
 
-def calcule_des_elements_facture(prix_unitaire_ht , quantite):
-     try:
+def calcule_des_elements_facture(prix_unitaire_ht, quantite):
+    """Effectue les calculs financiers de la vente."""
+    try:
         prix = float(prix_unitaire_ht)
         qt = int(quantite)
-
-        if prix < 0 or qt < 0:
-            print("[ERREUR] le prix unitaire et la quantite doivent etre superieur a zero")
+        if prix <= 0 or qt <= 0:
             return None
-
+            
         montant_ht = prix * qt
-        valeur_tva = montant_ht * taux_tva
+        valeur_tva = montant_ht * TAUX_TVA
         montant_ttc = montant_ht + valeur_tva
-
-        # on arrondit a 2 decimales pour eviter les chiffres infinie
-        # on range tout dans un dictionnaire propre pour le renvoyer au programme principal
-        return{
-            "montant_ht" : round(montant_ht , 2) , 
-            "valeur_tva" : round(valeur_tva , 2) ,
-            "total_ttc":round(montant_ttc , 2)
+        
+        return {
+            "montant_ht": round(montant_ht, 2),
+            "valeur_tva": round(valeur_tva, 2),
+            "total_ttc": round(montant_ttc, 2)
         }
-          
-     except Exception as e:
-         print (f"[ERREUR MOTEUR] echec du calcul financier. raison:{e}")
-         return None
+    except Exception:
+        return None
 
-     # ecriture de la fonction qui nous permet de generer un pdf de la facture 
-
-def generer_recu_pdf(nom_client , nom_article , quantite , montant_ht , valeur_tva , total_ttc):
+def generer_recu_pdf(nom_boutique, num_facture, nom_client, nom_article, imei_appareil, quantite, mnt_ht, valeur_tva, total_ttc):
+    """Génère le reçu officiel au format PDF avec numéro IMEI de l'appareil et filigrane."""
     try:
-
-        # on initialise une page blanche au format portait (p) et  millimetres (mm) 
-        pdf = FPDF(orientation='P', unit='mm', format='A4')
+        pdf = FPDF(orientation="P", unit="mm", format="A4")
         pdf.add_page()
-
-        #configuration de la police d'ecriture du pdf (nom de la police , style de la police , taille de la police)
-        pdf.set_font("Arial", size=12) # ou pdf.set_font("helvetica", "B" ,16)
-
-        #dessin de l'entete de la boutique (largueur , hauteur , texte , bordure , saut de ligne , alignement)
-        pdf.cell(190 , 10 ,"BOUTIQUE DE BIENS ET SERVICE - REçU OFFICIEL" , ln = 1 , align="C")
-        pdf.ln(5) # petit espace vertical  de 5mm
-
-        #ligne de separation esthetique 
-        pdf.cell (190 , 0 , "_" * 50, ln=1 , align="C")
-        pdf.ln(10) 
-
-        # information textuel sur le client et la transaction
-        pdf.set_font("helvetica" , "", 12)
-        pdf.cell(190 , 8 , f"client : {nom_client}" , ln= 1)
-        pdf.cell(190 , 8 , f"article : {nom_article}" , ln= 1)
-        pdf.cell(190 , 8 , f"quantité : {quantite}" , ln= 1)
+        
+        # 1. FILIGRANE DE SÉCURITÉ ANTI-FRAUDE (Gris très discret en arrière-plan)
+        pdf.set_font("Helvetica", "B", 30)
+        pdf.set_text_color(242, 242, 242) 
+        pdf.text(x=20, y=140, txt=f"{nom_boutique.upper()} - PIÈCE COMPTABLE")
+        
+        # Réinitialisation de la couleur du texte en noir normal
+        pdf.set_text_color(0, 0, 0)
+        
+        # 2. EN-TÊTE DYNAMIQUE DU MAGASIN
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(190, 10, f"{nom_boutique.upper()}", ln=1, align="C")
+        
+        pdf.set_font("Helvetica", "B", 11)
+        # On formate l'identifiant de la facture sur 4 chiffres minimum (ex: Facture N°0008)
+        pdf.cell(190, 8, f"FACTURE N°{str(num_facture).zfill(4)}", ln=1, align="C")
         pdf.ln(5)
-
-        pdf.cell (190 , 0 , "_" * 50, ln=1 )
+        
+        pdf.cell(190, 0, "--------------------------------------------------", ln=1, align="C")
+        pdf.ln(10)
+        
+        # 3. INFORMATIONS DE LA TRANSACTION ET DE LA GARANTIE
+        pdf.set_font("Helvetica", "", 12)
+        pdf.cell(190, 8, f"Client : {nom_client}", ln=1)
+        pdf.cell(190, 8, f"Article vendu : {nom_article}", ln=1)
+        
+        # EXCLUSIVITÉ V5.0 : Insertion de l'IMEI indispensable pour le SAV
+        pdf.set_font("Helvetica", "B", 12)
+        pdf.cell(190, 8, f"N° IMEI Appareil : {imei_appareil}", ln=1)
+        
+        pdf.set_font("Helvetica", "", 12)
+        pdf.cell(190, 8, f"Quantité : {quantite}", ln=1)
         pdf.ln(5)
-
-        # detail financiere claires
-        pdf.cell(100 , 8 , f"Montant Total Hors Taxes (HT) :" , ln= 0)
-        pdf.cell(90 , 8 , f"{montant_ht} FCFA" , ln= 1,align="R" )
-
-        pdf.cell(100 , 8 , "TVA calculéé (19.25%):" , ln= 0)
-        pdf.cell(90 , 8 , f"{valeur_tva} FCFA" , ln= 1 , align="R")
-
-        # passage en gras pour le net a payer
-        pdf.set_font("helvetica" , "B", 13)
-        pdf.cell(100 , 10 , "NET A PAYER (TTC):" , ln= 0)
-        pdf.cell(90 , 10 , f"{total_ttc} FCFA" , ln= 1 , align="R")
-
+        
+        pdf.cell(190, 0, "--------------------------------------------------", ln=1)
+        pdf.ln(5)
+        
+        # 4. BLOC DES CALCULS FINANCIERS ALIGNÉS À DROITE
+        pdf.cell(100, 8, "Montant Total Hors Taxes (HT) :", ln=0)
+        pdf.cell(90, 8, f"{mnt_ht} FCFA", ln=1, align="R")
+        
+        pdf.cell(100, 8, "TVA Calculée (19.25%) :", ln=0)
+        pdf.cell(90, 8, f"{valeur_tva} FCFA", ln=1, align="R")
+        
+        # Net à Payer mis en évidence en gras
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.cell(100, 10, "NET À PAYER (TTC) :", ln=0)
+        pdf.cell(90, 10, f"{total_ttc} FCFA", ln=1, align="R")
+        
         pdf.ln(15)
-        pdf.set_font("helvetica" , "I" ,10)
-        pdf.cell(90 , 5, "Merci pour votre confiance ! A bientot." ,ln=1 , align="C")
-
-        # on genere un nom de fichier unique basé sur le client et on l'enregistre sur le disque dur( dans le dossier courant)
-        nom_fichier = f"kashflow_app/reçu_{nom_client.replace(' ' , '_')}.pdf"
+        pdf.set_font("Helvetica", "I", 10)
+        pdf.cell(190, 5, f"Le matériel est garanti contre tout défaut de fabrication. Merci pour votre confiance !", ln=1, align="C")
+        
+        # Génération du nom de fichier unique basé sur le magasin et le numéro de facture
+        nom_magasin_propre = nom_boutique.replace(' ', '_')
+        nom_fichier = f"kashflow_app/recu_{nom_magasin_propre}_F{num_facture}.pdf"
         pdf.output(nom_fichier)
-
-        print(f"fichier pdf generer avec Succues : {nom_fichier}")
         return True
     except Exception as e:
-        print(f"[ERRURE PDF] Impossible de generer le document : {e}")
+        print(f"[ERREUR COMPILATION PDF] : {e}")
         return False
-        
-              
+  

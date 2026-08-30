@@ -77,5 +77,3 @@ def executer_logiciel():
             print("[ATTENTION] option invalide.veuillez taper 1 , 2 ou 3.")
 
 executer_logiciel()
-
-                
