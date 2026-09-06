@@ -8,7 +8,21 @@ import secrets
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import kashflow_app.data_base as data_base
+# =====================================================================
+# 🔑 SÉCURITÉ ARBORESCENCE : FORCE LE CHEMIN REUSSI SUR LE SERVEUR LINUX
+# =====================================================================
+import sys
+import os
+
+# On récupère le chemin absolu du dossier actuel où se trouve api.py
+DOSSIER_DU_FICHIER = os.path.dirname(os.path.abspath(__file__))
+# On force Python à ajouter ce dossier à sa liste de recherche prioritaire
+if DOSSIER_DU_FICHIER not in sys.path:
+    sys.path.insert(0, DOSSIER_DU_FICHIER)
+
+# Maintenant, l'importation se fait de façon ultra-simple et SANS ERREUR :
+import data_base
+
 
 
 
