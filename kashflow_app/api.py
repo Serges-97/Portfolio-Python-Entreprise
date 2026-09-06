@@ -8,8 +8,7 @@ import secrets
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-# 🔑 LA SYNTAXE UNIVERSELLE : Le point signifie "dans le même sous-dossier"
-from . import data_base
+import kashflow_app.data_base as data_base
 
 
 
