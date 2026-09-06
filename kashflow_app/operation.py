@@ -1,21 +1,35 @@
 # =====================================================================
-# MODULE CALCULS ET DESIGN : operation.py (Version 5.0)
+# MODULE 2 : operation.py (Version 5.5 Pro - PARTIE 1 SUR 2)
 # =====================================================================
+import os
 from fpdf import FPDF
 
-# Taux officiel de TVA en vigueur au Cameroun (19.25%)
-TAUX_TVA = 19.25 / 100
+# Taux officiel de la TVA en vigueur au Cameroun (19.25%)
+TAUX_TVA_CAMEROUN = 19.25 / 100
 
-def calcule_des_elements_facture(prix_unitaire_ht, quantite):
-    """Effectue les calculs financiers de la vente."""
+def calculer_facture_dynamique(prix_unitaire_ht, quantite, applique_tva):
+    """
+    Calcule le montant Hors Taxes, la valeur exacte de la TVA (0%  ou 19.25%)
+    et le montant toutes taxes comprises (TTC) pour la facture.
+    """
     try:
         prix = float(prix_unitaire_ht)
         qt = int(quantite)
+        
+        # Validation rigoureuse d'ingénierie
         if prix <= 0 or qt <= 0:
             return None
             
         montant_ht = prix * qt
-        valeur_tva = montant_ht * TAUX_TVA
+        
+        # RÈGLE DU CAHIER DES CHARGES : Gestion des grands et petits commerces
+        if int(applique_tva) == 1:
+            # Grande entreprise : application stricte de la taxe nationale
+            valeur_tva = montant_ht * TAUX_TVA_CAMEROUN
+        else:
+            # Petite boutique de quartier : vente directe sans facturation fiscale
+            valeur_tva = 0.0
+            
         montant_ttc = montant_ht + valeur_tva
         
         return {
@@ -25,71 +39,114 @@ def calcule_des_elements_facture(prix_unitaire_ht, quantite):
         }
     except Exception:
         return None
+# =====================================================================
+# MODULE 2 : operation.py (Version 5.5 Pro - PARTIE 2 SUR 2)
+# =====================================================================
 
-def generer_recu_pdf(nom_boutique, num_facture, nom_client, nom_article, imei_appareil, quantite, mnt_ht, valeur_tva, total_ttc):
-    """Génère le reçu officiel au format PDF avec numéro IMEI de l'appareil et filigrane."""
+def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_article, desc_unique, quantite, mnt_ht, valeur_tva, total_ttc, nom_caissiere):
+    """Génère une facture PDF hautement sécurisée avec filigrane en diagonale et traçabilité caissière."""
     try:
+        from datetime import datetime
+        maintenant = datetime.now()
+        date_facture = maintenant.strftime("%d/%m/%Y")
+        heure_facture = maintenant.strftime("%H:%M")
+        
         pdf = FPDF(orientation="P", unit="mm", format="A4")
         pdf.add_page()
         
-        # 1. FILIGRANE DE SÉCURITÉ ANTI-FRAUDE (Gris très discret en arrière-plan)
-        pdf.set_font("Helvetica", "B", 30)
-        pdf.set_text_color(242, 242, 242) 
-        pdf.text(x=20, y=140, txt=f"{nom_boutique.upper()} - PIÈCE COMPTABLE")
+        # =====================================================================
+        # 🛡️ 1. FILIGRANE DE SÉCURITÉ EN DIAGONALE (FOND DE FACTURE)
+        # =====================================================================
+        pdf.set_font("Helvetica", "B", 28)
+        # RGB (245, 245, 245) : un gris très clair invisible à la photocopie
+        pdf.set_text_color(245, 245, 245)
         
-        # Réinitialisation de la couleur du texte en noir normal
+        # Dessin textuel en diagonale au centre de la feuille A4
+        pdf.text(x=20, y=130, txt=f"{nom_boutique.upper()} - DOCUMENT AUTHENTIQUE")
+        pdf.text(x=20, y=150, txt=f"GARANTIE CONSTRUCTEUR CERTIFIEE")
+        
+        # Réinitialisation immédiate de la couleur en noir pour les vrais textes
         pdf.set_text_color(0, 0, 0)
         
-        # 2. EN-TÊTE DYNAMIQUE DU MAGASIN
+        # =====================================================================
+        # 🏢 2. EN-TÊTE OFFICIEL DE L'ENTREPRISE
+        # =====================================================================
         pdf.set_font("Helvetica", "B", 16)
         pdf.cell(190, 10, f"{nom_boutique.upper()}", ln=1, align="C")
         
         pdf.set_font("Helvetica", "B", 11)
-        # On formate l'identifiant de la facture sur 4 chiffres minimum (ex: Facture N°0008)
-        pdf.cell(190, 8, f"FACTURE N°{str(num_facture).zfill(4)}", ln=1, align="C")
+        # Numéro de facture normalisé sur 4 chiffres (ex: FACTURE N°0045)
+        pdf.cell(190, 8, f"FACTURE COMMERCIALE N°{str(num_facture).zfill(4)}", ln=1, align="C")
+        pdf.set_font("Helvetica", "I", 10)
+        pdf.cell(190, 6, f"Émise le {date_facture} à {heure_facture}", ln=1, align="C")
         pdf.ln(5)
-        
-        pdf.cell(190, 0, "--------------------------------------------------", ln=1, align="C")
-        pdf.ln(10)
-        
-        # 3. INFORMATIONS DE LA TRANSACTION ET DE LA GARANTIE
-        pdf.set_font("Helvetica", "", 12)
-        pdf.cell(190, 8, f"Client : {nom_client}", ln=1)
-        pdf.cell(190, 8, f"Article vendu : {nom_article}", ln=1)
-        
-        # EXCLUSIVITÉ V5.0 : Insertion de l'IMEI indispensable pour le SAV
-        pdf.set_font("Helvetica", "B", 12)
-        pdf.cell(190, 8, f"N° IMEI Appareil : {imei_appareil}", ln=1)
         
         pdf.set_font("Helvetica", "", 12)
-        pdf.cell(190, 8, f"Quantité : {quantite}", ln=1)
+        pdf.cell(190, 0, "--------------------------------------------------------------------------------", ln=1, align="C")
+        pdf.ln(8)
+        
+        # =====================================================================
+        # 🧑‍💼 3. TRAÇABILITÉ DES ACTEURS (CLIENT & CAISSIÈRE EMETTRICE)
+        # =====================================================================
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(95, 8, f"Client : {nom_client.upper()}", ln=0)
+        pdf.cell(95, 8, f"Émis par : {nom_caissiere.upper()}", ln=1, align="R")
+        pdf.ln(4)
+        
+        # =====================================================================
+        # 📦 4. DÉSIGNATION TECHNIQUE DU PRODUIT (IMEI / SÉRIE)
+        # =====================================================================
+        pdf.set_font("Helvetica", "", 12)
+        pdf.cell(190, 8, f"Désignation Article : {nom_article}", ln=1)
+        
+        # Insertion dynamique de la description unique selon l'appareil électronique
+        pdf.set_font("Helvetica", "B", 11)
+        pdf.cell(190, 8, f"Identifiant Unique / N° IMEI / Série : {desc_unique}", ln=1)
+        
+        pdf.set_font("Helvetica", "", 12)
+        pdf.cell(190, 8, f"Quantité facturée : {quantite} unité(s)", ln=1)
         pdf.ln(5)
         
-        pdf.cell(190, 0, "--------------------------------------------------", ln=1)
-        pdf.ln(5)
+        pdf.cell(190, 0, "--------------------------------------------------------------------------------", ln=1)
+        pdf.ln(6)
         
-        # 4. BLOC DES CALCULS FINANCIERS ALIGNÉS À DROITE
+        # =====================================================================
+        # 📊 5. GRILLE FINANCIÈRE ET FISCALE ALIGNÉE À DROITE
+        # =====================================================================
         pdf.cell(100, 8, "Montant Total Hors Taxes (HT) :", ln=0)
         pdf.cell(90, 8, f"{mnt_ht} FCFA", ln=1, align="R")
         
-        pdf.cell(100, 8, "TVA Calculée (19.25%) :", ln=0)
+        pdf.cell(100, 8, "Taxe sur la Valeur Ajoutée (TVA) :", ln=0)
         pdf.cell(90, 8, f"{valeur_tva} FCFA", ln=1, align="R")
         
-        # Net à Payer mis en évidence en gras
+        # Net à payer mis en valeur en gras de niveau PGI
         pdf.set_font("Helvetica", "B", 13)
-        pdf.cell(100, 10, "NET À PAYER (TTC) :", ln=0)
+        pdf.cell(100, 10, "NET A PAYER (TTC) :", ln=0)
         pdf.cell(90, 10, f"{total_ttc} FCFA", ln=1, align="R")
         
-        pdf.ln(15)
+        pdf.ln(12)
         pdf.set_font("Helvetica", "I", 10)
-        pdf.cell(190, 5, f"Le matériel est garanti contre tout défaut de fabrication. Merci pour votre confiance !", ln=1, align="C")
+        pdf.cell(190, 5, "Le matériel est garanti contre tout vice de fabrication sur présentation de ce reçu.", ln=1, align="C")
+        pdf.cell(190, 5, "Merci pour votre confiance !", ln=1, align="C")
         
-        # Génération du nom de fichier unique basé sur le magasin et le numéro de facture
-        nom_magasin_propre = nom_boutique.replace(' ', '_')
-        nom_fichier = f"kashflow_app/recu_{nom_magasin_propre}_F{num_facture}.pdf"
+        # Sauvegarde sécurisée dans le dossier local du projet
+        nom_magasin_propre = nom_boutique.replace(' ', '_').replace('/', '_').replace('\\', '_')
+        dossier_pdf = os.path.dirname(os.path.abspath(__file__))  # Dossier kashflow_app
+        nom_fichier = os.path.join(dossier_pdf, f"recu_{nom_magasin_propre}_F{num_facture}.pdf")
         pdf.output(nom_fichier)
+        
+        # =====================================================================
+        # 🖨️ IMPRESSION AUTOMATIQUE DIRECTE (RÈGLES DE SÉRIE C)
+        # =====================================================================
+        try:
+            # os.startfile envoie l'ordre d'impression silencieux à l'imprimante par défaut de Windows
+            os.startfile(nom_fichier, "print")
+        except Exception as e:
+            # Si aucune imprimante n'est branchée, le code ne crash pas, il écrit juste un avertissement
+            print(f"[INFO IMPRIMANTE] : Aucune imprimante détectée ou configurée par défaut. {e}")
+            
         return True
-    except Exception as e:
-        print(f"[ERREUR COMPILATION PDF] : {e}")
-        return False
   
+    except Exception as e:
+        print(f"[ERREUR DESSINATEUR PDF V5.5] : {e}")
+        return False
