@@ -1,90 +1,21 @@
 # =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - PARTIE 1 SUR 2)
-# =====================================================================
-import sqlite3
-import os
-import secrets
-
-from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-# =====================================================================
-# 🔑 SÉCURITÉ ARBORESCENCE : FORCE LE CHEMIN REUSSI SUR LE SERVEUR LINUX
-# =====================================================================
-import sys
-import os
-
-# On récupère le chemin absolu du dossier actuel où se trouve api.py
-DOSSIER_DU_FICHIER = os.path.dirname(os.path.abspath(__file__))
-# On force Python à ajouter ce dossier à sa liste de recherche prioritaire
-if DOSSIER_DU_FICHIER not in sys.path:
-    sys.path.insert(0, DOSSIER_DU_FICHIER)
-
-# Maintenant, l'importation se fait de façon ultra-simple et SANS ERREUR :
-import data_base
-
-
-
-
-data_base.initialisation_systeme()
-
-# Initialisation de la passerelle Cloud d'entreprise
-app = FastAPI(
-    title="KashFlow Cloud v5.5 - Espace Supervision Patron",
-    description="Moteur réseau permettant au gérant de piloter son entreprise à distance."
-)
-
-origines_autorisees = [
-    origine.strip()
-    for origine in os.environ.get("KASHFLOW_CORS_ORIGINS", "").split(",")
-    if origine.strip()
-]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origines_autorisees,
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["X-API-Key", "Content-Type"],
-)
-
-# Structure de contrôle stricte pour la validation des données réseau arrivant de la caisse
-class VenteSchemaReseau(BaseModel):
-    reference_locale: str
-    client: str
-    article: str
-    description_unique: str  # IMEI, Numéro de Série, etc.
-    prix_ht: float
-    quantite: int
-    caissiere: str
-    applique_tva: bool | None = None
-
-
-def verifier_cle_api(x_api_key: str | None = Header(default=None)):
-    """Refuse l'API tant qu'une clé serveur n'est pas configurée et présentée."""
-    cle_attendue = os.environ.get("KASHFLOW_API_KEY", "").strip()
-    if not cle_attendue:
-        raise HTTPException(status_code=503, detail="Clé API serveur non configurée.")
-    if not x_api_key or not secrets.compare_digest(x_api_key, cle_attendue):
-        raise HTTPException(status_code=401, detail="Clé API invalide.")
-
-
-@app.get("/")
-def verifier_connexion_cloud():
-    """Route de diagnostic rapide pour vérifier si le serveur en ligne répond."""
-    return {
-        "statut": "Serveur Central en ligne (200 OK)",
-        "application": "KashFlow Manager Backend v5.5",
-        "auteur": "Ingénieur Serges"
-    }# =====================================================================
 # MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 1 SUR 10)
 # =====================================================================
 import sqlite3
 import os
 import secrets
+import sys
+
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
+
+# Sécurité d'arborescence pour serveur Linux
+DOSSIER_DU_FICHIER = os.path.dirname(os.path.abspath(__file__))
+if DOSSIER_DU_FICHIER not in sys.path:
+    sys.path.insert(0, DOSSIER_DU_FICHIER)
+
 import data_base
 
 data_base.initialisation_systeme()
@@ -126,7 +57,7 @@ class VenteSchemaReseau(BaseModel):
 def verifier_cle_api(x_api_key: str | None = Header(default=None)):
     cle_attendue = os.environ.get("KASHFLOW_API_KEY", "").strip()
     if not cle_attendue:
-        return  # Mode démo si non configurée en local
+        return  
     if not x_api_key or not secrets.compare_digest(x_api_key, cle_attendue):
         raise HTTPException(status_code=401, detail="Clé API invalide.")
 
@@ -136,7 +67,7 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
 # =====================================================================
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
-    """Renvoie une application web mobile sublime avec boutons tactiles."""
+    """Renvoie une application web mobile sublime avec boutons tactiles et CDN stables."""
     nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW ENTREPRISE"
     
     html_content = f"""
@@ -146,6 +77,7 @@ def page_accueil_supervision_mobile():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Supervision - {nom_boutique}</title>
+        <!-- Version universelle et FontAwesome pour smartphone -->
         <script src="https://jsdelivr.net"></script>
         <link rel="stylesheet" href="https://cloudflare.com">
     </head>
@@ -154,6 +86,47 @@ def page_accueil_supervision_mobile():
         <div class="bg-indigo-900 text-white text-center py-6 shadow-md sticky top-0 z-50">
             <h1 class="text-xl font-black tracking-wider"><i class="fa-solid fa-store text-emerald-400 mr-2"></i>{nom_boutique.upper()}</h1>
             <p class="text-xs text-indigo-200 mt-1">KashFlow Cloud Manager v5.5 • Espace Patron</p>
+        </div>
+    """
+# =====================================================================
+# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 4 SUR 10)
+# =====================================================================
+
+    html_content += """
+        <div class="max-w-md mx-auto px-4 mt-6">
+            <!-- Grille des boutons tactiles du smartphone -->
+            <div class="grid grid-cols-2 gap-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <button onclick="chargerStocks()" style="background: white; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; text-align: center; cursor: pointer;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📦</div>
+                    <span class="text-xs font-bold text-slate-700">État des Stocks</span>
+                </button>
+
+                <button onclick="chargerStatistiques()" style="background: white; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; text-align: center; cursor: pointer;">
+                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📊</div>
+                    <span class="text-xs font-bold text-slate-700">Chiffre d'Affaires</span>
+                </button>
+            </div>
+
+            <!-- Bouton large pour voir tout le registre -->
+            <button onclick="chargerToutHistorique()" style="width: 100%; background: white; padding: 1rem; margin-top: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="font-size: 1.25rem;">📋</div>
+                    <div style="text-align: left;">
+                        <p style="margin: 0; font-size: 0.875rem; font-weight: bold; color: #1e293b;">Registre Général</p>
+                        <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Transactions de la boutique</p>
+                    </div>
+                </div>
+                <span style="color: #cbd5e1; font-weight: bold;">&gt;</span>
+            </button>
+
+            <!-- ÉCRAN D'AFFICHAGE DYNAMIQUE -->
+            <div id="zone-affichage" class="mt-6 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 hidden" style="margin-top: 1.5rem; background: white; border-radius: 1rem; padding: 1rem; border: 1px solid #e2e8f0; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                    <h3 id="titre-section" style="margin: 0; font-size: 0.875rem; font-weight: bold; color: #1e293b;">SECTION</h3>
+                    <span onclick="fermerZone()" style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer; font-weight: bold;">X</span>
+                </div>
+                <div id="contenu-section" class="overflow-x-auto text-xs"></div>
+            </div>
         </div>
     """
 # =====================================================================
@@ -173,14 +146,14 @@ def page_accueil_supervision_mobile():
             }
 
             function fermerZone() {
-                document.getElementById('zone-affichage').classList.add('hidden');
+                document.getElementById('zone-affichage').style.display = 'none';
             }
 
             async function chargerStocks() {
                 const el = document.getElementById('contenu-section');
                 document.getElementById('titre-section').innerText = "📦 ÉTAT GLOBAL DE L'INVENTAIRE";
-                document.getElementById('zone-affichage').classList.remove('hidden');
-                el.innerHTML = "<p class='text-center py-4 text-slate-400'><i class='fa-solid fa-spinner animate-spin mr-2'></i>Lecture du stock central...</p>";
+                document.getElementById('zone-affichage').style.display = 'block';
+                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Lecture du stock central...</p>";
     """
 # =====================================================================
 # MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 6 SUR 10)
@@ -191,28 +164,20 @@ def page_accueil_supervision_mobile():
                     const r = await fetch('/stocks/etat', { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
                     
-                    let html = `<table class='w-full text-left border-collapse'>
-                        <thead>
-                            <tr class='bg-slate-50 text-slate-400 text-[10px] uppercase font-bold border-b border-slate-100'>
-                                <th class='py-2 px-1'>Article / Modèle</th>
-                                <th class='py-2 text-center'>Reste</th>
-                                <th class='py-2 text-right'>Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
+                    let html = "<table style='width:100%; text-align:left; border-collapse:collapse;'><thead><tr style='color:#94a3b8; font-size:0.75rem; border-bottom:1px solid #e2e8f0;'><th style='padding:0.5rem 0;'>Article</th><th style='text-align:center;'>Reste</th><th style='text-align:right;'>Statut</th></tr></thead><tbody>";
                     
                     res.inventaire_magasin.forEach(i => {
-                        const color = i.quantite_restante <= i.seuil_alerte_applied || i.statut_commande.includes('🚨') ? 'text-red-600 bg-red-50' : 'text-emerald-600 bg-emerald-50';
-                        html += `<tr class='border-b border-slate-100'>
-                            <td class='py-3 font-bold text-slate-800'>${i.article_modele}</td>
-                            <td class='py-3 text-center font-black'>${i.quantite_restante} pcs</td>
-                            <td class='py-3 text-right'><span class='px-2 py-1 rounded-full font-bold text-[9px] ${color}'>${i.quantite_restante <= 5 ? '🛑 ALERTE' : '🟢 OK'}</span></td>
+                        const color = i.quantite_restante <= i.seuil_alerte_applique ? 'color:#b91c1c; background:#fee2e2;' : 'color:#047857; background:#dcfce7;';
+                        html += `<tr style='border-bottom:1px solid #f1f5f9;'>
+                            <td style='padding:0.75rem 0; font-weight:bold; color:#334155;'>${i.article_modele}</td>
+                            <td style='text-align:center; font-weight:900;'>${i.quantite_restante} pcs</td>
+                            <td style='text-align:right;'><span style='padding:0.25rem 0.5rem; border-radius:9999px; font-size:0.70rem; font-weight:bold; ${color}'>${i.statut_commande}</span></td>
                         </tr>`;
                     });
                     html += "</tbody></table>";
                     el.innerHTML = html;
                 } catch(e) {
-                    el.innerHTML = "<p class='text-red-500 font-bold text-center py-2'>❌ Erreur de clé API ou serveur déconnecté.</p>";
+                    el.innerHTML = "<p style='color:#ef4444; font-weight:bold; text-align:center;'>❌ Échec de liaison ou clé API incorrecte.</p>";
                 }
             }
     """
@@ -224,29 +189,29 @@ def page_accueil_supervision_mobile():
             async function chargerStatistiques() {
                 const el = document.getElementById('contenu-section');
                 document.getElementById('titre-section').innerText = "📊 ANALYSE DU CHIFFRE D'AFFAIRES";
-                document.getElementById('zone-affichage').classList.remove('hidden');
+                document.getElementById('zone-affichage').style.display = 'block';
                 
-                let cible = prompt("Analyse financière du jour\\n\\nTapez la date cible au format J/M/AAAA (ex: 6/9/2026) :");
+                let cible = prompt("Analyse financière du jour\\n\\nTapez la date cible au format J/M/AAAA (ex: 7/9/2026) :");
                 if(!cible) return;
 
-                el.innerHTML = "<p class='text-center py-4 text-slate-400'><i class='fa-solid fa-spinner animate-spin mr-2'></i>Calcul des performances...</p>";
+                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul des performances...</p>";
                 
                 try {
                     const r = await fetch(`/ventes/statistiques?temporalite=JOUR&cible=${encodeURIComponent(cible)}`, { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
                     
                     el.innerHTML = `
-                        <div class='bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center mb-4'>
-                            <p class='text-[10px] font-bold text-emerald-600 uppercase tracking-wide'>Chiffre d'Affaires du ${cible}</p>
-                            <p class='text-2xl font-black text-emerald-800 mt-1'>${res.chiffre_affaires_ttc} <span class='text-xs'>FCFA</span></p>
+                        <div style='background:#dcfce7; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1rem; text-align:center; margin-bottom:1rem; color:#14532d;'>
+                            <p style='margin:0; font-size:0.75rem; font-weight:bold; text-transform:uppercase;'>Chiffre d'Affaires du ${cible}</p>
+                            <p style='margin:0.25rem 0 0 0; font-size:1.5rem; font-weight:900;'>${res.chiffre_affaires_ttc} <span style='font-size:0.875rem;'>FCFA</span></p>
                         </div>
-                        <div class='bg-slate-50 rounded-xl p-3 border border-slate-100'>
-                            <p class='text-slate-500 font-bold mb-1'><i class='fa-solid fa-fire text-orange-500 mr-1'></i> Article Star : <span class='text-slate-800 font-black'>${res.article_le_plus_vendu}</span></p>
-                            <p class='text-[11px] text-slate-500 italic mt-2 border-t border-slate-200 pt-2'><i class='fa-solid fa-chart-line text-indigo-500 mr-1'></i> ${res.comparatif_performance_n_1}</p>
+                        <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem;'>
+                            <p style='margin:0 0 0.5rem 0;'>🔥 <b>Article Star :</b> <span style='font-weight:bold; color:#1e3a8a;'>${res.article_le_plus_vendu}</span></p>
+                            <p style='margin:0.5rem 0 0 0; padding-top:0.5rem; border-top:1px solid #e2e8f0; color:#475569; font-style:italic;'>📈 ${res.comparatif_performance_n_1}</p>
                         </div>
                     `;
                 } catch(e) {
-                    el.innerHTML = "<p class='text-red-500 font-bold text-center py-2'>❌ Échec de l'analyse comptable.</p>";
+                    el.innerHTML = "<p style='color:#ef4444; font-weight:bold; text-align:center;'>❌ Échec du calcul comptable.</p>";
                 }
             }
     """
@@ -258,41 +223,40 @@ def page_accueil_supervision_mobile():
             async function chargerToutHistorique() {
                 const el = document.getElementById('contenu-section');
                 document.getElementById('titre-section').innerText = "📋 TRANSACTIONS EN DIRECT";
-                document.getElementById('zone-affichage').classList.remove('hidden');
-                el.innerHTML = "<p class='text-center py-4 text-slate-400'><i class='fa-solid fa-spinner animate-spin mr-2'></i>Chargement du registre central...</p>";
+                document.getElementById('zone-affichage').style.display = 'block';
+                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Chargement du registre...</p>";
                 
                 let caissiere = prompt("Entrez l'identifiant exact de la caissière à auditer :");
                 if(!caissiere) return;
 
                 try {
-                    const r = await fetch(`/ventes/caissiere/${caissiere.trim().lower()}`, { headers: { 'X-API-Key': API_KEY } });
+                    const r = await fetch(`/ventes/caissiere/${caissiere.trim().toLowerCase()}`, { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
                     
                     if(res.total_ventes_effectuees === 0) {
-                        el.innerHTML = "<p class='text-center py-4 text-slate-400'>Aucune transaction répertoriée pour cette session.</p>";
+                        el.innerHTML = "<p style='text-align:center; padding:1rem; color:#94a3b8;'>Aucune opération enregistrée pour ce profil.</p>";
                         return;
                     }
 
-                    let html = `<p class='mb-3 font-bold text-indigo-900'>Total ventes émises : ${res.total_ventes_effectuees} factures</p>
-                        <div class='space-y-3'>`;
+                    let html = `<p style='font-weight:bold; color:#1e3a8a; margin-bottom:0.75rem;'>Total : ${res.total_ventes_effectuees} factures</p><div style='display:flex; flex-direction:column; gap:0.75rem;'>`;
                     
                     res.liste_ventes.forEach(v => {
-                        html += `<div class='bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center'>
+                        html += `<div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;'>
                             <div>
-                                <p class='font-black text-slate-800 text-xs'>Facture #00${v.facture_no}</p>
-                                <p class='text-[10px] text-slate-500 mt-0.5'>Client : ${v.client.toUpperCase()}</p>
-                                <p class='text-[9px] text-slate-400 mt-1'><i class='fa-regular fa-clock mr-1'></i>Le ${v.date} à ${v.heure}</p>
+                                <div style='font-weight:bold; color:#1e293b;'>Facture #00${v.facture_no}</div>
+                                <div style='font-size:0.65rem; color:#64748b;'>Client : ${v.client.toUpperCase()}</div>
+                                <div style='font-size:0.60rem; color:#94a3b8; margin-top:0.25rem;'>🕒 ${v.date} à ${v.heure}</div>
                             </div>
-                            <div class='text-right'>
-                                <p class='font-black text-indigo-700 text-sm'>${v.montant_ttc}</p>
-                                <p class='text-[9px] text-slate-400 mt-0.5'>${v.article}</p>
+                            <div style='text-align:right;'>
+                                <div style='font-weight:900; color:#1d4ed8;'>${v.montant_ttc}</div>
+                                <div style='font-size:0.65rem; color:#64748b;'>${v.article}</div>
                             </div>
                         </div>`;
                     });
                     html += "</div>";
                     el.innerHTML = html;
                 } catch(e) {
-                    el.innerHTML = "<p class='text-red-500 font-bold text-center py-2'>❌ Erreur de lecture.</p>";
+                    el.innerHTML = "<p style='color:#ef4444; font-weight:bold; text-align:center;'>❌ Erreur d'accès aux transactions.</p>";
                 }
             }
         </script>
@@ -394,170 +358,9 @@ def api_consulter_stocks_cloud():
                 "article_modele": string_modele,
                 "quantite_restante": l[1],
                 "ventes_totales": l[2],
-                "seuil_alerte_applied": seuil,
-                "statut_commande": etat_alerte
-            })
-        return {"inventaire_magasin": rapport_stock}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-
-@app.post("/ventes/synchroniser", dependencies=[Depends(verifier_cle_api)])
-def api_centraliser_vente(donnees: VenteSchemaReseau):
-    """
-    Route distante appelée automatiquement en arrière-plan par l'ordinateur 
-    de la caissière pour enregistrer une transaction dans le Cloud du patron.
-    """
-    try:
-        donnees.caissiere = donnees.caissiere.strip().lower()
-        if donnees.prix_ht <= 0 or not 0 < donnees.quantite <= 1000:
-            raise HTTPException(status_code=422, detail="Prix ou quantité invalide.")
-
-        connexion = sqlite3.connect(data_base.DB_NAME)
-        deja_sync = connexion.execute(
-            "SELECT id FROM ventes WHERE reference_locale = ?", (donnees.reference_locale,)
-        ).fetchone()
-        connexion.close()
-        if deja_sync:
-            return {"statut": "Déjà synchronisé", "facture_id_cloud": deja_sync[0]}
-
-        # 1. Extraction du régime fiscal de la caissière enregistré en base de données
-        regime_tva = (
-            int(donnees.applique_tva)
-            if donnees.applique_tva is not None
-            else data_base.obtenir_regime_tva_employe(donnees.caissiere)
-        )
-        
-        # 2. Calcul financier de sécurité sur le serveur central
-        total_ht = donnees.prix_ht * donnees.quantite
-        
-        if regime_tva == 1:
-            tva_calculee = total_ht * (19.25 / 100) # Grande entreprise
-        else:
-            tva_calculee = 0.0 # Petite boutique informelle
-            
-        total_ttc = total_ht + tva_calculee
-        
-        # 3. Écriture immédiate dans le coffre-fort SQL
-        num_facture = data_base.enregistrer_vente_sql(
-            client=donnees.client,
-            article=donnees.article,
-            desc_unique=donnees.description_unique,
-            mnt_ht=total_ht,
-            tva=tva_calculee,
-            ttc=total_ttc,
-            caissiere=donnees.caissiere,
-            reference_locale=donnees.reference_locale,
-        )
-        
-        if num_facture is None:
-            raise HTTPException(status_code=500, detail="Échec critique d'écriture sur le serveur central.")
-            
-        return {
-            "statut": "Synchronisé",
-            "facture_id_cloud": num_facture,
-            "message": "Transaction répertoriée avec succès sur le terminal du patron."
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-# =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - PARTIE 2 SUR 2)
-# =====================================================================
-
-# --- ROUTE N°4 : AUDIT FINANCIER ET STATISTIQUES COMPARATIVES ---
-@app.get("/ventes/statistiques", dependencies=[Depends(verifier_cle_api)])
-def api_obtenir_statistiques(temporalite: str, cible: str):
-    """
-    Route analytique permettant au gérant d'obtenir le CA de la journée, 
-    du mois ou de l'année, le produit star, et le comparatif de performance.
-    - temporalite : 'JOUR', 'MOIS' ou 'ANNEE'
-    - cible : 'JJ-MM' (pour jour), 'MM' (pour mois) ou 'AAAA' (pour année)
-    """
-    if temporalite not in ["JOUR", "MOIS", "ANNEE"]:
-        raise HTTPException(status_code=400, detail="Temporalité invalide. Choisissez 'JOUR', 'MOIS' ou 'ANNEE'.")
-        
-    try:
-        # Interrogation directe du moteur analytique de data_base.py
-        analyse = data_base.extraire_statistiques_avancees(temporalite, cible)
-        return {
-            "statut": "Succes",
-            "periode_analysee": temporalite,
-            "valeur_cible": cible,
-            "chiffre_affaires_ttc": analyse["ca_total"],
-            "article_le_plus_vendu": analyse["produit_phare"],
-            "comparatif_performance_n_1": analyse["message_performance"]
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# --- ROUTE N°5 : RAPPORT DE RENDEMENT PAR CAISSIÈRE ---
-@app.get("/ventes/caissiere/{nom_caissiere}", dependencies=[Depends(verifier_cle_api)])
-def api_historique_caissiere(nom_caissiere: str):
-    """Permet au gérant de voir les ventes effectuées par une vendeuse spécifique."""
-    try:
-        ventes = data_base.recuperer_ventes_par_caissiere(nom_caissiere)
-        if not ventes:
-            return {
-                "caissiere": nom_caissiere.upper(),
-                "total_ventes_effectuees": 0,
-                "liste_ventes": []
-            }
-            
-        liste_formatee = []
-        for v in ventes:
-            liste_formatee.append({
-                "facture_no": v[0],
-                "client": v[1],
-                "article": v[2],
-                "montant_ttc": v[3],
-                "date": v[4],
-                "heure": v[5]
-            })
-            
-        return {
-            "caissiere": nom_caissiere.upper(),
-            "total_ventes_effectuees": len(liste_formatee),
-            "liste_ventes": liste_formatee
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# --- ROUTE N°6 : RAPPORT DE STOCK CRITIQUE EN TEMPS RÉEL ---
-@app.get("/stocks/etat", dependencies=[Depends(verifier_cle_api)])
-def api_consulter_stocks_cloud():
-    """Renvoie l'état global du stock de l'entreprise pour la supervision du patron."""
-    try:
-        connexion = sqlite3.connect(data_base.DB_NAME)
-        curseur = connexion.cursor()
-        curseur.execute("SELECT modele, quantite_dispo, ventes_cumulees FROM stocks")
-        lignes = curseur.fetchall()
-        connexion.close()
-        
-        rapport_stock = []
-        for l in lignes:
-            # Règle : Si le produit est un top vente, seuil à 10, sinon 5
-            curseur_max = sqlite3.connect(data_base.DB_NAME)
-            c = curseur_max.cursor()
-            c.execute("SELECT MAX(ventes_cumulees) FROM stocks")
-            max_v = c.fetchone()[0] or 0
-            curseur_max.close()
-            
-            seuil = 10 if l[2] == max_v else 5
-            etat_alerte = "🚨 RUPTURE PROCHE / COMMANDE" if l[1] <= seuil else "🟢 Stock Confortable"
-            
-            rapport_stock.append({
-                "article_modele": l[0],
-                "quantite_restante": l[1],
-                "ventes_totales": l[2],
                 "seuil_alerte_applique": seuil,
                 "statut_commande": etat_alerte
             })
-            
         return {"inventaire_magasin": rapport_stock}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
