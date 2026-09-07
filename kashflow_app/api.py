@@ -137,7 +137,7 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
     """Renvoie une application web mobile sublime avec boutons tactiles."""
-    nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW ENTERPRISE"
+    nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW ENTREPRISE"
     
     html_content = f"""
     <!DOCTYPE html>
