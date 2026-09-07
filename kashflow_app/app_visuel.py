@@ -20,7 +20,7 @@ data_base.initialisation_systeme()
 SESSION_UTILISATEUR = "caissier"
 NOM_CAISSIERE_ACTIVE = "Anonyme"
 NOM_BOUTIQUE_FIXE = "KASHFLOW_MANAGER"
-CLE_MASTER_SERGE = "KASHFLOW-RECOVERY-2026"
+CLE_MASTER_SERGE = "Je suis simple"
 # FENETRE_PRINCIPALE_LOGIN = None  # Référence à la fenêtre de login principale
 # URL_API_KASHFLOW = os.environ.get("KASHFLOW_API_URL", "").strip().rstrip("/")
 # CLE_API_KASHFLOW = os.environ.get("KASHFLOW_API_KEY", "").strip()
@@ -455,6 +455,46 @@ def ouvrir_comptoir_facturation():
     comptoir.after(30000, planifier_synchronisation_cloud)
 
     tk.Label(comptoir, text=f"{nom_boutique_fixe} - COMPTOIR DE FACTURATION", font=("Helvetica", 12, "bold"), bg="#0f766e", fg="white", pady=8).pack(fill=tk.X)
+        # =====================================================================
+    # 📡 AJOUT DU DISPOSITIF DE VÉRIFICATION DU CLOUD EN DIRECT (SÉRIE C)
+    # =====================================================================
+    def verifier_connexion_cloud():
+        try:
+            # On tente une mini requête hyper rapide vers ton Render (Délai max 4 secondes)
+            reponse = requests.get(URL_API_KASHFLOW, timeout=4)
+            if reponse.status_code == 200:
+                label_statut_cloud.config(text="CONNECTÉ 🟢", fg="#10b981")
+            else:
+                label_statut_cloud.config(text="📡 SERVEUR EN LIGNE (RÉPONSE INCONNUE) 🟡", fg="#f59e0b")
+        except Exception:
+            label_statut_cloud.config(text=" déconnecté 🔴", fg="#dc2626")
+
+    # Fonction manuelle reliée au bouton pour rafraîchir le statut au clic
+    def forcer_test_reseau():
+        label_statut_cloud.config(text="🔄 Connexion en cours...", fg="#94a3b8")
+        comptoir.update_idletasks()
+        try:
+            reponse = requests.get(URL_API_KASHFLOW, timeout=4)
+            if reponse.status_code == 200:
+                label_statut_cloud.config(text="📡 CLOUD CONNECTÉ : EN DIRECT 🟢", fg="#10b981")
+                messagebox.showinfo("Réseau OK", "Connexion réussie avec le serveur Render !")
+            else:
+                label_statut_cloud.config(text="📡 SERVEUR EN LIGNE (RÉPONSE INCONNUE) 🟡", fg="#f59e0b")
+        except Exception:
+            label_statut_cloud.config(text="📡 CLOUD DÉCONNECTÉ (PAS D'INTERNET) 🔴", fg="#dc2626")
+            messagebox.showwarning("Réseau Coupé", "Impossible de joindre Render.\n\nLes ventes seront stockées localement en attendant le retour d'Internet.")
+
+    # Dessin des éléments sur l'interface graphique (sous le titre)
+    label_statut_cloud = tk.Label(comptoir, text="📡 VÉRIFICATION DU STATUT RÉSEAU...", font=("Helvetica", 10, "bold"), bg="#1e3a8a", fg="white")
+    label_statut_cloud.pack(pady=2)
+    
+    btn_test_reseau = tk.Button(comptoir, text="🔄 Tester la liaison Cloud", font=("Helvetica", 8, "bold"), bg="#1e293b", fg="white", command=forcer_test_reseau)
+    btn_test_reseau.pack(pady=2)
+    
+    # Déclenche automatiquement un premier test 1 seconde après l'affichage du comptoir
+    comptoir.after(1000, verifier_connexion_cloud)
+    # =====================================================================
+
 
     def action_bouton_enregistrer():
         """Enregistre une vente et génère le PDF avec une sécurité totale."""

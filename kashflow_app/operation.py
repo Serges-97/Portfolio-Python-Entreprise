@@ -135,6 +135,29 @@ def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_artic
         nom_fichier = os.path.join(dossier_pdf, f"recu_{nom_magasin_propre}_F{num_facture}.pdf")
         pdf.output(nom_fichier)
         
+        # 🟢 COLLE EXACTEMENT CE NOUVEAU BLOC À LA PLACE :
+        # =====================================================================
+        # 📂 CONFIGURATION DU DOSSIER REEL SUR LE BUREAU DU CLIENT (SÉRIE C)
+        # =====================================================================
+        import sys
+        
+        # Détection du dossier d'exécution réel (PC ou .exe compilé)
+        if getattr(sys, 'frozen', False):
+            dossier_reel_app = os.path.dirname(sys.executable)
+        else:
+            dossier_reel_app = os.path.dirname(os.path.abspath(__file__))
+            
+        # Création automatique du sous-dossier s'il n'existe pas
+        dossier_factures = os.path.join(dossier_reel_app, "Factures_Emises")
+        if not os.path.exists(dossier_factures):
+            os.makedirs(dossier_factures)
+            
+        nom_magasin_propre = nom_boutique.replace(' ', '_').replace('/', '_').replace('\\', '_')
+        nom_fichier = os.path.join(dossier_factures, f"recu_{nom_magasin_propre}_F{num_facture}.pdf")
+        
+        # Sauvegarde du PDF dans le sous-dossier du Bureau
+        pdf.output(nom_fichier)
+        
         # =====================================================================
         # 🖨️ IMPRESSION AUTOMATIQUE DIRECTE (RÈGLES DE SÉRIE C)
         # =====================================================================
