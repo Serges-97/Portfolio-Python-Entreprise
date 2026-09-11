@@ -364,3 +364,24 @@ def api_consulter_stocks_cloud():
         return {"inventaire_magasin": rapport_stock}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+# =====================================================================
+# 🕵️‍♂️ SÉCURITÉ GÉRANT : EXTRACTION DE LA LISTE DES EMPLOYÉS DU MAGASIN
+# =====================================================================
+@app.get("/employes/liste", dependencies=[Depends(verifier_cle_api)])
+def api_liste_des_employes():
+    """Extrait la liste unique des caissières enregistrées pour alimenter le smartphone du patron."""
+    try:
+        # Connexion directe à ton moteur de base de données d'origine
+        liste_employes = data_base.recuperer_liste_tous_employes()
+        
+        # Si la base est neuve et qu'aucune caissière n'est créée, on met des profils de démo
+        if not liste_employes:
+            return {"employes": ["caissiere1", "caissiere2"]}
+            
+        # On renvoie la liste nettoyée en minuscules pour le JavaScript du téléphone
+        return {"employes": [str(emp).strip().lower() for emp in liste_employes]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

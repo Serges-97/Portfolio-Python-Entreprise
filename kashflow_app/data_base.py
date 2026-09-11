@@ -92,10 +92,10 @@ def initialisation_systeme():
     
     # Produits électroniques injectés à l'allumage d'usine
     produits_usine = [
-        ("iPhone 15 Pro", 20, 0),
-        ("Écran Plasma LG 4K", 15, 0),
-        ("Frigo Innova Split", 8, 0),
-        ("Ordinateur Laptop HP", 12, 0)
+        ("iphone 15 pro", 20, 0),
+        ("Ecran plasma LG 4K", 15, 0),
+        ("Frigo innova split", 8, 0),
+        ("Ordinateur laptop hp", 12, 0)
     ]
     for p in produits_usine:
         curseur.execute("INSERT OR IGNORE INTO stocks (modele, quantite_dispo, ventes_cumulees) VALUES (?, ?, ?)", p)
