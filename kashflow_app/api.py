@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 1 SUR 10)
+# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 1 SUR 7)
 # =====================================================================
 import sqlite3
 import os
@@ -11,13 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-# Sécurité d'arborescence pour serveur Linux
+# Sécurité d'arborescence universelle pour serveur Linux Render
 DOSSIER_DU_FICHIER = os.path.dirname(os.path.abspath(__file__))
 if DOSSIER_DU_FICHIER not in sys.path:
     sys.path.insert(0, DOSSIER_DU_FICHIER)
 
 import data_base
 
+# Déclenchement automatique des configurations d'usine au démarrage
 data_base.initialisation_systeme()
 
 app = FastAPI(
@@ -25,7 +26,7 @@ app = FastAPI(
     description="Moteur réseau et interface de supervision mobile du gérant."
 )
 # =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 2 SUR 10)
+# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 2 SUR 7)
 # =====================================================================
 
 origines_autorisees = [
@@ -51,7 +52,7 @@ class VenteSchemaReseau(BaseModel):
     caissiere: str
     applique_tva: bool | None = None
 # =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 3 SUR 10)
+# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 3 SUR 7)
 # =====================================================================
 
 def verifier_cle_api(x_api_key: str | None = Header(default=None)):
@@ -67,7 +68,7 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
 # =====================================================================
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
-    """Renvoie une application web mobile sublime avec boutons tactiles et CDN stables."""
+    """Renvoie l'application web mobile du gérant avec cloche d'alerte et sélecteur tactile."""
     nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW ENTREPRISE"
     
     html_content = f"""
@@ -77,65 +78,86 @@ def page_accueil_supervision_mobile():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Supervision - {nom_boutique}</title>
-        <!-- Version universelle et FontAwesome pour smartphone -->
+        <!-- Framework Tailwind Pro et FontAwesome intégrés avec des CDN officiels valides -->
         <script src="https://jsdelivr.net"></script>
         <link rel="stylesheet" href="https://cloudflare.com">
     </head>
-    <body class="bg-slate-100 font-sans text-slate-800 pb-12">
+    <body class="bg-slate-50 font-sans text-slate-800 pb-12">
         
-        <div class="bg-indigo-900 text-white text-center py-6 shadow-md sticky top-0 z-50">
-            <h1 class="text-xl font-black tracking-wider"><i class="fa-solid fa-store text-emerald-400 mr-2"></i>{nom_boutique.upper()}</h1>
-            <p class="text-xs text-indigo-200 mt-1">KashFlow Cloud Manager v5.5 • Espace Patron</p>
+        <!-- En-tête avec Cloche d'alerte en direct -->
+        <div class="bg-indigo-950 text-white px-4 py-5 shadow-lg sticky top-0 z-50 flex justify-between items-center">
+            <div>
+                <h1 class="text-lg font-black tracking-wider text-emerald-400 uppercase"><i class="fa-solid fa-store mr-2"></i>{nom_boutique}</h1>
+                <p class="text-4xs text-indigo-300 font-medium">KashFlow Cloud Manager v5.5 • Cabinet Patron</p>
+            </div>
+            
+            <!-- 🔔 LA CLOCHE DE NOTIFICATION CRITIQUE -->
+            <div class="relative cursor-pointer" onclick="ouvrirAlerteStocks()">
+                <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-4 h-4 rounded-full flex items-center justify-center animate-ping"></div>
+                <div id="badge-cloche-fixe" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-4 h-4 rounded-full flex items-center justify-center text-center text-rose-100 z-10">!</div>
+                <i id="icone-cloche" class="fa-solid fa-bell text-slate-400 text-xl transition-colors duration-300"></i>
+            </div>
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 4 SUR 10)
+# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 4 SUR 7)
 # =====================================================================
 
     html_content += """
-        <div class="max-w-md mx-auto px-4 mt-6">
-            <!-- Grille des boutons tactiles du smartphone -->
-            <div class="grid grid-cols-2 gap-4" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <button onclick="chargerStocks()" style="background: white; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; text-align: center; cursor: pointer;">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📦</div>
+        <div class="max-w-md mx-auto px-4 mt-6 space-y-4">
+            <!-- Grille de contrôle rapide -->
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="chargerStocks()" class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-sm active:scale-95 transition-transform cursor-pointer">
+                    <div class="text-2xl mb-1">📦</div>
                     <span class="text-xs font-bold text-slate-700">État des Stocks</span>
                 </button>
 
-                <button onclick="chargerStatistiques()" style="background: white; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; text-align: center; cursor: pointer;">
-                    <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📊</div>
+                <button onclick="chargerStatistiques()" class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-sm active:scale-95 transition-transform cursor-pointer">
+                    <div class="text-2xl mb-1">📊</div>
                     <span class="text-xs font-bold text-slate-700">Chiffre d'Affaires</span>
                 </button>
             </div>
 
-            <!-- Bouton large pour voir tout le registre -->
-            <button onclick="chargerToutHistorique()" style="width: 100%; background: white; padding: 1rem; margin-top: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="font-size: 1.25rem;">📋</div>
-                    <div style="text-align: left;">
-                        <p style="margin: 0; font-size: 0.875rem; font-weight: bold; color: #1e293b;">Registre Général</p>
-                        <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">Transactions de la boutique</p>
+            <!-- 📋 MODULE DU REGISTRE GÉNÉRAL AVEC DÉPLOIEMENT TACTILE DES EMPLOYÉS -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <button onclick="basculerMenuEmployes()" class="w-full p-4 flex items-center justify-between active:bg-slate-50 cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <div class="text-xl">📋</div>
+                        <div class="text-left">
+                            <p class="text-sm font-bold text-slate-800">Registre Général</p>
+                            <p class="text-2xs text-slate-400">Transactions de la boutique par caissière</p>
+                        </div>
+                    </div>
+                    <span id="fleche-registre" class="text-slate-300 font-bold text-sm transition-transform duration-200">&gt;</span>
+                </button>
+                
+                <!-- Zone masquée qui va afficher la liste des caissières en un clic -->
+                <div id="menu-tactile-employes" class="hidden border-t border-slate-100 bg-slate-50/50 p-4">
+                    <p class="text-4xs font-bold text-slate-400 tracking-wider uppercase mb-2">Sélectionnez une caissière à auditer :</p>
+                    <div id="liste-boutons-caissieres" class="flex flex-wrap gap-2">
+                        <!-- Les macarons des vendeuses s'injectent ici dynamiquement via le JavaScript -->
                     </div>
                 </div>
-                <span style="color: #cbd5e1; font-weight: bold;">&gt;</span>
-            </button>
+            </div>
 
-            <!-- ÉCRAN D'AFFICHAGE DYNAMIQUE -->
-            <div id="zone-affichage" class="mt-6 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 hidden" style="margin-top: 1.5rem; background: white; border-radius: 1rem; padding: 1rem; border: 1px solid #e2e8f0; display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem; margin-bottom: 1rem;">
-                    <h3 id="titre-section" style="margin: 0; font-size: 0.875rem; font-weight: bold; color: #1e293b;">SECTION</h3>
-                    <span onclick="fermerZone()" style="background: #f1f5f9; color: #64748b; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer; font-weight: bold;">X</span>
+            <!-- ÉCRAN D'AFFICHAGE DYNAMIQUE DES RAPPORTS COMPTABLES -->
+            <div id="zone-affichage" class="bg-white rounded-2xl p-4 shadow-md border border-slate-200 hidden">
+                <div class="flex justify-between items-center border-bottom border-slate-100 pb-3 mb-4">
+                    <h3 id="titre-section" class="text-xs font-extrabold text-slate-800 uppercase tracking-wide">SECTION</h3>
+                    <span onclick="fermerZone()" class="bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-lg text-3xs cursor-pointer active:bg-slate-200 transition-colors">X</span>
                 </div>
                 <div id="contenu-section" class="overflow-x-auto text-xs"></div>
             </div>
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 5 SUR 10)
+# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 5 SUR 7)
 # =====================================================================
 
     html_content += """
         <script>
             const API_KEY = localStorage.getItem('KASHFLOW_KEY') || "";
+            let listeStocksGlobaux = []; // Stockage temporaire pour la cloche
             
             if(!API_KEY) {
                 const key = prompt("Sécurité d'accès d'usine\\n\\nVeuillez saisir la clé de sécurité API de votre boutique :");
@@ -145,8 +167,136 @@ def page_accueil_supervision_mobile():
                 }
             }
 
+            // --- ALLUMAGE DE SÉCURITÉ EN TÂCHE DE FOND ---
+            if(API_KEY) {
+                verifierAlertesStocksEnArrierePlan();
+                chargerProfilsCaissieresTactiles();
+                // La cloche interroge le serveur automatiquement toutes les 20 secondes
+                setInterval(verifierAlertesStocksEnArrierePlan, 20000);
+            }
+
             function fermerZone() {
                 document.getElementById('zone-affichage').style.display = 'none';
+            }
+
+            // --- 🔔 RECHERCHE AUTOMATIQUE DES SEUILS CRITIQUES ---
+            async function verifierAlertesStocksEnArrierePlan() {
+                try {
+                    const r = await fetch('/stocks/etat', { headers: { 'X-API-Key': API_KEY } });
+                    const res = await r.json();
+                    listeStocksGlobaux = res.inventaire_magasin || [];
+                    
+                    // On filtre si au moins un article a déclenché l'alerte rupture proche
+                    const articlesEnAlerte = listeStocksGlobaux.filter(i => i.quantite_restante <= i.seuil_alerte_applique);
+                    
+                    const cloche = document.getElementById('icone-cloche');
+                    const badge = document.getElementById('badge-cloche');
+                    const badgeFixe = document.getElementById('badge-cloche-fixe');
+                    
+                    if(articlesEnAlerte.length > 0) {
+                        // 🔴 On allume la cloche en rouge vif et on la fait clignoter !
+                        cloche.className = "fa-solid fa-bell text-rose-500 text-xl text-center animate-bounce";
+                        badge.classList.remove('hidden');
+                        badgeFixe.classList.remove('hidden');
+                    } else {
+                        // 🟢 Tout est confort, la cloche reste calme
+                        cloche.className = "fa-solid fa-bell text-slate-400 text-xl";
+                        badge.classList.add('hidden');
+                        badgeFixe.classList.add('hidden');
+                    }
+                } catch(e) { console.error("Erreur check cloche:", e); }
+            }
+
+            // Déclenche l'affichage du rapport d'alerte quand le patron clique sur la cloche
+            function ouvrirAlerteStocks() {
+                const articlesEnAlerte = listeStocksGlobaux.filter(i => i.quantite_restante <= i.seuil_alerte_applique);
+                const el = document.getElementById('contenu-section');
+                document.getElementById('titre-section').innerText = "🚨 ALERTE STOCKS CRITIQUES EN DIRECT";
+                document.getElementById('zone-affichage').style.display = 'block';
+                
+                if(articlesEnAlerte.length === 0) {
+                    el.innerHTML = "<p class='text-center py-4 font-bold text-emerald-600 text-xs'>🟢 Aucun produit en seuil critique. Tous les stocks sont confortables !</p>";
+                    return;
+                }
+                
+                let html = "<div class='space-y-2'>";
+                articlesEnAlerte.forEach(i => {
+                    html += `<div class='bg-rose-50 border border-rose-200 text-rose-900 rounded-lg p-3 flex justify-between items-center font-bold'>
+                        <div>⚠️ ${i.article_modele.toUpperCase()}</div>
+                        <div class='text-right text-rose-700 text-xxs'>Reste : ${i.quantite_restante} pcs <br><span class='text-4xs text-slate-400 font-normal'>(Seuil max appliqué: ${i.seuil_alerte_applique})</span></div>
+                    </div>`;
+                });
+                html += "</div>";
+                el.innerHTML = html;
+            }
+    """
+# =====================================================================
+# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 6 SUR 7)
+# =====================================================================
+
+    html_content += """
+            // --- 📋 STRUCTURE TACTILE DES EMPLOYÉS ---
+            function basculerMenuEmployes() {
+                const menu = document.getElementById('menu-tactile-employes');
+                const fleche = document.getElementById('fleche-registre');
+                if(menu.classList.contains('hidden')) {
+                    menu.classList.remove('hidden');
+                    fleche.style.transform = "rotate(90deg)";
+                } else {
+                    menu.classList.add('hidden');
+                    fleche.style.transform = "rotate(0deg)";
+                }
+            }
+
+            async function chargerProfilsCaissieresTactiles() {
+                const conteneur = document.getElementById('liste-boutons-caissieres');
+                try {
+                    const r = await fetch('/employes/liste', { headers: { 'X-API-Key': API_KEY } });
+                    const res = await r.json();
+                    
+                    conteneur.innerHTML = "";
+                    res.employes.forEach(emp => {
+                        const bouton = document.createElement('button');
+                        bouton.className = "bg-white border border-slate-200 text-slate-800 text-xxs font-extrabold px-3 py-2 rounded-lg shadow-2xs active:bg-indigo-600 active:text-white cursor-pointer transition-colors uppercase tracking-wide";
+                        bouton.innerText = emp;
+                        bouton.onclick = () => chargerHistoriqueCaissiereDirect(emp);
+                        conteneur.appendChild(bouton);
+                    });
+                } catch(e) { conteneur.innerHTML = "<span class='text-rose-500 font-bold'>Échec de liaison employés.</span>"; }
+            }
+
+            async function chargerHistoriqueCaissiereDirect(caissiere) {
+                const el = document.getElementById('contenu-section');
+                document.getElementById('titre-section').innerText = `📋 DOSSIER FACTURES : ${caissiere.toUpperCase()}`;
+                document.getElementById('zone-affichage').style.display = 'block';
+                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul des transactions...</p>";
+
+                try {
+                    const r = await fetch(`/ventes/caissiere/${encodeURIComponent(caissiere)}`, { headers: { 'X-API-Key': API_KEY } });
+                    const res = await r.json();
+                    
+                    if(res.total_ventes_effectuees === 0) {
+                        el.innerHTML = `<p style='text-align:center; padding:1rem; color:#94a3b8;'>Aucune opération enregistrée pour ${caissiere.toUpperCase()}.</p>`;
+                        return;
+                    }
+
+                    let html = `<p class='font-black text-indigo-900 mb-3 text-xs'>Tiroir-Caisse : ${res.total_ventes_effectuees} factures</p><div class='space-y-2'>`;
+                    res.liste_ventes.forEach(v => {
+                        html += `<div class='bg-slate-50 border border-slate-100 rounded-xl p-3 flex justify-between items-center'>
+                            <div>
+                                <div class='font-extrabold text-slate-800'>Facture #00${v.facture_no}</div>
+                                <div class='text-4xs text-slate-400 font-medium'>Client : ${v.client.toUpperCase()}</div>
+                                <div class='text-4xs text-slate-400 mt-0.5 font-normal'>🕒 ${v.date} à ${v.heure}</div>
+                            </div>
+                            <div class='text-right'>
+                                <div class='font-black text-indigo-700 text-xxs'>${v.montant_ttc}</div>
+                                <div class='text-4xs font-bold text-slate-500 uppercase tracking-tight'>${v.article}</div>
+                            </div>
+                        </div>`;
+                    });
+                    html += "</div>";
+                    el.innerHTML = html;
+                } catch(e) { el.innerHTML = "<p style='color:#ef4444; font-weight:bold;'>❌ Échec d'audit.</p>"; }
             }
 
             async function chargerStocks() {
@@ -154,110 +304,42 @@ def page_accueil_supervision_mobile():
                 document.getElementById('titre-section').innerText = "📦 ÉTAT GLOBAL DE L'INVENTAIRE";
                 document.getElementById('zone-affichage').style.display = 'block';
                 el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Lecture du stock central...</p>";
-    """
-# =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 6 SUR 10)
-# =====================================================================
-
-    html_content += """
                 try {
                     const r = await fetch('/stocks/etat', { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
-                    
                     let html = "<table style='width:100%; text-align:left; border-collapse:collapse;'><thead><tr style='color:#94a3b8; font-size:0.75rem; border-bottom:1px solid #e2e8f0;'><th style='padding:0.5rem 0;'>Article</th><th style='text-align:center;'>Reste</th><th style='text-align:right;'>Statut</th></tr></thead><tbody>";
-                    
                     res.inventaire_magasin.forEach(i => {
                         const color = i.quantite_restante <= i.seuil_alerte_applique ? 'color:#b91c1c; background:#fee2e2;' : 'color:#047857; background:#dcfce7;';
                         html += `<tr style='border-bottom:1px solid #f1f5f9;'>
                             <td style='padding:0.75rem 0; font-weight:bold; color:#334155;'>${i.article_modele}</td>
                             <td style='text-align:center; font-weight:900;'>${i.quantite_restante} pcs</td>
-                            <td style='text-align:right;'><span style='padding:0.25rem 0.5rem; border-radius:9999px; font-size:0.70rem; font-weight:bold; ${color}'>${i.statut_commande}</span></td>
+                            <td style='text-align:right;'><span style='padding:0.25rem 0.5rem; border-radius:9999px; font-size:0.65rem; font-weight:bold; ${color}'>${i.statut_commande}</span></td>
                         </tr>`;
                     });
-                    html += "</tbody></table>";
-                    el.innerHTML = html;
-                } catch(e) {
-                    el.innerHTML = "<p style='color:#ef4444; font-weight:bold; text-align:center;'>❌ Échec de liaison ou clé API incorrecte.</p>";
-                }
+                    html += "</tbody></table>"; el.innerHTML = html;
+                } catch(e) { el.innerHTML = "<p style='color:#ef4444;'>❌ Erreur réseau.</p>"; }
             }
-    """
-# =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 7 SUR 10)
-# =====================================================================
 
-    html_content += """
             async function chargerStatistiques() {
                 const el = document.getElementById('contenu-section');
                 document.getElementById('titre-section').innerText = "📊 ANALYSE DU CHIFFRE D'AFFAIRES";
                 document.getElementById('zone-affichage').style.display = 'block';
-                
-                let cible = prompt("Analyse financière du jour\\n\\nTapez la date cible au format J/M/AAAA (ex: 7/9/2026) :");
+                let cible = prompt("Tapez la date au format J/M/AAAA (ex: 12/9/2026) :");
                 if(!cible) return;
-
-                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul des performances...</p>";
-                
+                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul...</p>";
                 try {
                     const r = await fetch(`/ventes/statistiques?temporalite=JOUR&cible=${encodeURIComponent(cible)}`, { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
-                    
                     el.innerHTML = `
-                        <div style='background:#dcfce7; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1rem; text-align:center; margin-bottom:1rem; color:#14532d;'>
-                            <p style='margin:0; font-size:0.75rem; font-weight:bold; text-transform:uppercase;'>Chiffre d'Affaires du ${cible}</p>
-                            <p style='margin:0.25rem 0 0 0; font-size:1.5rem; font-weight:900;'>${res.chiffre_affaires_ttc} <span style='font-size:0.875rem;'>FCFA</span></p>
+                        <div style='background:#dcfce7; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1rem; text-align:center; color:#14532d;'>
+                            <p style='margin:0; font-size:0.75rem; font-weight:bold;'>Chiffre d'Affaires du ${cible}</p>
+                            <p style='margin:0.25rem 0 0 0; font-size:1.5rem; font-weight:900;'>${res.chiffre_affaires_ttc} FCFA</p>
                         </div>
-                        <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem;'>
-                            <p style='margin:0 0 0.5rem 0;'>🔥 <b>Article Star :</b> <span style='font-weight:bold; color:#1e3a8a;'>${res.article_le_plus_vendu}</span></p>
-                            <p style='margin:0.5rem 0 0 0; padding-top:0.5rem; border-top:1px solid #e2e8f0; color:#475569; font-style:italic;'>📈 ${res.comparatif_performance_n_1}</p>
-                        </div>
-                    `;
-                } catch(e) {
-                    el.innerHTML = "<p style='color:#ef4444; font-weight:bold; text-align:center;'>❌ Échec du calcul comptable.</p>";
-                }
-            }
-    """
-# =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 8 SUR 10)
-# =====================================================================
-
-    html_content += """
-            async function chargerToutHistorique() {
-                const el = document.getElementById('contenu-section');
-                document.getElementById('titre-section').innerText = "📋 TRANSACTIONS EN DIRECT";
-                document.getElementById('zone-affichage').style.display = 'block';
-                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Chargement du registre...</p>";
-                
-                let caissiere = prompt("Entrez l'identifiant exact de la caissière à auditer :");
-                if(!caissiere) return;
-
-                try {
-                    const r = await fetch(`/ventes/caissiere/${caissiere.trim().toLowerCase()}`, { headers: { 'X-API-Key': API_KEY } });
-                    const res = await r.json();
-                    
-                    if(res.total_ventes_effectuees === 0) {
-                        el.innerHTML = "<p style='text-align:center; padding:1rem; color:#94a3b8;'>Aucune opération enregistrée pour ce profil.</p>";
-                        return;
-                    }
-
-                    let html = `<p style='font-weight:bold; color:#1e3a8a; margin-bottom:0.75rem;'>Total : ${res.total_ventes_effectuees} factures</p><div style='display:flex; flex-direction:column; gap:0.75rem;'>`;
-                    
-                    res.liste_ventes.forEach(v => {
-                        html += `<div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; display:flex; justify-content:space-between; align-items:center;'>
-                            <div>
-                                <div style='font-weight:bold; color:#1e293b;'>Facture #00${v.facture_no}</div>
-                                <div style='font-size:0.65rem; color:#64748b;'>Client : ${v.client.toUpperCase()}</div>
-                                <div style='font-size:0.60rem; color:#94a3b8; margin-top:0.25rem;'>🕒 ${v.date} à ${v.heure}</div>
-                            </div>
-                            <div style='text-align:right;'>
-                                <div style='font-weight:900; color:#1d4ed8;'>${v.montant_ttc}</div>
-                                <div style='font-size:0.65rem; color:#64748b;'>${v.article}</div>
-                            </div>
+                        <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem; margin-top:1rem;'>
+                            <p>🔥 <b>Article Star :</b> ${res.article_le_plus_vendu}</p>
+                            <p style='border-top:1px solid #e2e8f0; margin-top:0.5rem; pt-2; font-style:italic;'>📈 ${res.comparatif_performance_n_1}</p>
                         </div>`;
-                    });
-                    html += "</div>";
-                    el.innerHTML = html;
-                } catch(e) {
-                    el.innerHTML = "<p style='color:#ef4444; font-weight:bold; text-align:center;'>❌ Erreur d'accès aux transactions.</p>";
-                }
+                } catch(e) { el.innerHTML = "<p style='color:#ef4444;'>❌ Erreur de calcul.</p>"; }
             }
         </script>
     </body>
@@ -265,7 +347,7 @@ def page_accueil_supervision_mobile():
     """
     return html_content
 # =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 9 SUR 10)
+# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 7 SUR 7)
 # =====================================================================
 
 @app.post("/ventes/synchroniser", dependencies=[Depends(verifier_cle_api)])
@@ -299,9 +381,7 @@ def api_centraliser_vente(donnees: VenteSchemaReseau):
         return {"statut": "Synchronisé", "facture_id_cloud": num_facture}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-# =====================================================================
-# MODULE 3 : api.py (Version 5.5 Pro - ÉTAPE 10 SUR 10)
-# =====================================================================
+
 
 @app.get("/ventes/statistiques", dependencies=[Depends(verifier_cle_api)])
 def api_obtenir_statistiques(temporalite: str, cible: str):
@@ -366,22 +446,13 @@ def api_consulter_stocks_cloud():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-# =====================================================================
-# 🕵️‍♂️ SÉCURITÉ GÉRANT : EXTRACTION DE LA LISTE DES EMPLOYÉS DU MAGASIN
-# =====================================================================
 @app.get("/employes/liste", dependencies=[Depends(verifier_cle_api)])
 def api_liste_des_employes():
     """Extrait la liste unique des caissières enregistrées pour alimenter le smartphone du patron."""
     try:
-        # Connexion directe à ton moteur de base de données d'origine
         liste_employes = data_base.recuperer_liste_tous_employes()
-        
-        # Si la base est neuve et qu'aucune caissière n'est créée, on met des profils de démo
         if not liste_employes:
             return {"employes": ["caissiere1", "caissiere2"]}
-            
-        # On renvoie la liste nettoyée en minuscules pour le JavaScript du téléphone
         return {"employes": [str(emp).strip().lower() for emp in liste_employes]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
