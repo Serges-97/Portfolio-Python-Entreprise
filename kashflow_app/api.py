@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 1 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Série C - ÉTAPE 1 SUR 3)
 # =====================================================================
 import sqlite3
 import os
@@ -11,14 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-# Sécurité d'arborescence universelle pour serveur Linux Render
+# 🔑 SÉCURITÉ CONSTRUCTEUR : Forcer Render à cibler le bon dossier physique
 DOSSIER_DU_FICHIER = os.path.dirname(os.path.abspath(__file__))
 if DOSSIER_DU_FICHIER not in sys.path:
     sys.path.insert(0, DOSSIER_DU_FICHIER)
 
 import data_base
 
-# Déclenchement automatique des configurations d'usine au démarrage
+# On s'assure que l'API pointe sur la MEME chaîne de base de données que l'application
 data_base.initialisation_systeme()
 
 app = FastAPI(
@@ -26,7 +26,7 @@ app = FastAPI(
     description="Moteur réseau et interface de supervision mobile du gérant."
 )
 # =====================================================================
-# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 2 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Série C - ÉTAPE 2 SUR 3)
 # =====================================================================
 
 origines_autorisees = [
@@ -51,9 +51,7 @@ class VenteSchemaReseau(BaseModel):
     quantite: int
     caissiere: str
     applique_tva: bool | None = None
-# =====================================================================
-# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 3 SUR 7)
-# =====================================================================
+
 
 def verifier_cle_api(x_api_key: str | None = Header(default=None)):
     cle_attendue = os.environ.get("KASHFLOW_API_KEY", "").strip()
@@ -63,9 +61,6 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
         raise HTTPException(status_code=401, detail="Clé API invalide.")
 
 
-# =====================================================================
-# 📱 INTERFACE VISUELLE MAJESTUEUSE POUR LE TÉLÉPHONE DU PATRON
-# =====================================================================
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
     """Renvoie l'application web mobile du gérant avec cloche d'alerte et sélecteur tactile."""
@@ -78,7 +73,7 @@ def page_accueil_supervision_mobile():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Supervision - {nom_boutique}</title>
-        <!-- Framework Tailwind Pro et FontAwesome intégrés avec des CDN officiels valides -->
+        <!-- 🟢 CORRECTIF ABSOLU : Liens de production stables et sécurisés pour smartphone -->
         <script src="https://jsdelivr.net"></script>
         <link rel="stylesheet" href="https://cloudflare.com">
     </head>
@@ -88,7 +83,7 @@ def page_accueil_supervision_mobile():
         <div class="bg-indigo-950 text-white px-4 py-5 shadow-lg sticky top-0 z-50 flex justify-between items-center">
             <div>
                 <h1 class="text-lg font-black tracking-wider text-emerald-400 uppercase"><i class="fa-solid fa-store mr-2"></i>{nom_boutique}</h1>
-                <p class="text-4xs text-indigo-300 font-medium">KashFlow Cloud Manager v5.5 • Cabinet Patron</p>
+                
             </div>
             
             <!-- 🔔 LA CLOCHE DE NOTIFICATION CRITIQUE -->
@@ -98,23 +93,18 @@ def page_accueil_supervision_mobile():
                 <i id="icone-cloche" class="fa-solid fa-bell text-slate-400 text-xl transition-colors duration-300"></i>
             </div>
         </div>
-    """
-# =====================================================================
-# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 4 SUR 7)
-# =====================================================================
 
-    html_content += """
         <div class="max-w-md mx-auto px-4 mt-6 space-y-4">
             <!-- Grille de contrôle rapide -->
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="chargerStocks()" class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-sm active:scale-95 transition-transform cursor-pointer">
+                <button onclick="chargerStocks()" class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-sm active:scale-95 transition-transform cursor-pointer font-bold text-xs text-slate-700">
                     <div class="text-2xl mb-1">📦</div>
-                    <span class="text-xs font-bold text-slate-700">État des Stocks</span>
+                    État des Stocks
                 </button>
 
-                <button onclick="chargerStatistiques()" class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-sm active:scale-95 transition-transform cursor-pointer">
+                <button onclick="chargerStatistiques()" class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-sm active:scale-95 transition-transform cursor-pointer font-bold text-xs text-slate-700">
                     <div class="text-2xl mb-1">📊</div>
-                    <span class="text-xs font-bold text-slate-700">Chiffre d'Affaires</span>
+                    Chiffre d'Affaires
                 </button>
             </div>
 
@@ -142,7 +132,7 @@ def page_accueil_supervision_mobile():
 
             <!-- ÉCRAN D'AFFICHAGE DYNAMIQUE DES RAPPORTS COMPTABLES -->
             <div id="zone-affichage" class="bg-white rounded-2xl p-4 shadow-md border border-slate-200 hidden">
-                <div class="flex justify-between items-center border-bottom border-slate-100 pb-3 mb-4">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
                     <h3 id="titre-section" class="text-xs font-extrabold text-slate-800 uppercase tracking-wide">SECTION</h3>
                     <span onclick="fermerZone()" class="bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-lg text-3xs cursor-pointer active:bg-slate-200 transition-colors">X</span>
                 </div>
@@ -151,7 +141,7 @@ def page_accueil_supervision_mobile():
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 5 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Série C - ÉTAPE 3.1 SUR 3)
 # =====================================================================
 
     html_content += """
@@ -231,7 +221,7 @@ def page_accueil_supervision_mobile():
             }
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 6 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Série C - ÉTAPE 3.2 SUR 3)
 # =====================================================================
 
     html_content += """
@@ -347,7 +337,7 @@ def page_accueil_supervision_mobile():
     """
     return html_content
 # =====================================================================
-# MODULE 3 : api.py (Version Pure Origine Validée - ÉTAPE 7 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Série C - ÉTAPE 3.3 SUR 3)
 # =====================================================================
 
 @app.post("/ventes/synchroniser", dependencies=[Depends(verifier_cle_api)])
@@ -408,7 +398,7 @@ def api_historique_caissiere(nom_caissiere: str):
         for v in ventes:
             liste_formatee.append({
                 "facture_no": v[0], "client": v[1], "article": str(v[2]).replace("{", "").replace("}", ""),
-                "montant_ttc": f"{v[3]} FCFA", "date": v[4], "heure": v[5]
+                "montant_ttc": f"{v[3]} FCFA", "date": f"{v[4]}", "heure": v[5]
             })
         return {"total_ventes_effectuees": len(liste_formatee), "liste_ventes": liste_formatee}
     except Exception as e:
