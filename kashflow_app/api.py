@@ -91,6 +91,7 @@ def page_accueil_supervision_mobile():
                 <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-4 h-4 rounded-full flex items-center justify-center animate-ping"></div>
                 <div id="badge-cloche-fixe" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-4 h-4 rounded-full flex items-center justify-center text-center text-rose-100 z-10">!</div>
                 <div id="icone-cloche" class="text-xl filter grayscale opacity-40 transition-all duration-300">🔔</div>
+                <div id="badge-cloche" class="hidden absolute -top-2 -right-2 bg-rose-600 text-white font-black text-3xs w-5 h-5 rounded-full flex items-center justify-center animate-pulse shadow-md">0</div>
             </div>
         </div>
 
@@ -171,32 +172,31 @@ def page_accueil_supervision_mobile():
 
             // --- 🔔 RECHERCHE AUTOMATIQUE DES SEUILS CRITIQUES ---
             async function verifierAlertesStocksEnArrierePlan() {
-                try {
-                    const r = await fetch('/stocks/etat', { headers: { 'X-API-Key': API_KEY } });
-                    const res = await r.json();
-                    listeStocksGlobaux = res.inventaire_magasin || [];
-                    
-                    // On filtre si au moins un article a déclenché l'alerte rupture proche
-                    const articlesEnAlerte = listeStocksGlobaux.filter(i => i.quantite_restante <= i.seuil_alerte_applique);
-                    
-                    const cloche = document.getElementById('icone-cloche');
-                    const badge = document.getElementById('badge-cloche');
-                    const badgeFixe = document.getElementById('badge-cloche-fixe');
-                    
-                    // 🟢 LE CODE CORRIGÉ À METTRE À LA PLACE :
-                    if(articlesEnAlerte.length > 0) {
-                        // Rupture détectée : on retire le filtre gris, on augmente l'opacité et on fait sauter la cloche !
-                        cloche.className = "text-xl filter-none opacity-100 animate-bounce";
-                        badge.classList.remove('hidden');
-                        badgeFixe.classList.remove('hidden');
-                    } else {
-                        // Tout est OK : la cloche redevient grise et calme
-                        cloche.className = "text-xl filter grayscale opacity-40";
-                        badge.classList.add('hidden');
-                        badgeFixe.classList.add('hidden');
-                    }
+                // 🟢 CODE CORRIGÉ À METTRE DE LA LIGNE 186 À 196 :
+                 const r = await fetch('/stocks/etat', { headers: { 'X-API-Key': API_KEY } });
+                 try {
+                     const res = await r.json();
+                     listeStocksGlobaux = res.inventaire_magasin || [];
+                     
+                     // Calcul du nombre exact d'articles en alerte
+                     const articlesEnAlerte = listeStocksGlobaux.filter(i => i.quantite_restante <= i.seuil_alerte_applique);
+                     const nombreAlertes = articlesEnAlerte.length;
+                     
+                     const cloche = document.getElementById('icone-cloche');
+                     const badge = document.getElementById('badge-cloche');
+                     
+                     if(nombreAlertes > 0) {
+                         // Alerte active : cloche allumée en couleur, badge affiché avec le nombre exact, et clignotement lent (animate-pulse)
+                         cloche.className = "text-xl filter-none opacity-100";
+                         badge.innerText = nombreAlertes;
+                         badge.classList.remove('hidden');
+                     } else {
+                         // Tout est calme
+                         cloche.className = "text-xl filter grayscale opacity-40";
+                         badge.classList.add('hidden');
+                     }
+                 } catch(e) { console.error("Erreur check cloche:", e); }
 
-                } catch(e) { console.error("Erreur check cloche:", e); }
             }
 
             // Déclenche l'affichage du rapport d'alerte quand le patron clique sur la cloche
