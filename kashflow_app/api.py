@@ -90,7 +90,7 @@ def page_accueil_supervision_mobile():
             <div class="relative cursor-pointer" onclick="ouvrirAlerteStocks()">
                 <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-4 h-4 rounded-full flex items-center justify-center animate-ping"></div>
                 <div id="badge-cloche-fixe" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-4 h-4 rounded-full flex items-center justify-center text-center text-rose-100 z-10">!</div>
-                <i id="icone-cloche" class="fa-solid fa-bell text-slate-400 text-xl transition-colors duration-300"></i>
+                <div id="icone-cloche" class="text-xl filter grayscale opacity-40 transition-all duration-300">🔔</div>
             </div>
         </div>
 
@@ -183,17 +183,19 @@ def page_accueil_supervision_mobile():
                     const badge = document.getElementById('badge-cloche');
                     const badgeFixe = document.getElementById('badge-cloche-fixe');
                     
+                    // 🟢 LE CODE CORRIGÉ À METTRE À LA PLACE :
                     if(articlesEnAlerte.length > 0) {
-                        // 🔴 On allume la cloche en rouge vif et on la fait clignoter !
-                        cloche.className = "fa-solid fa-bell text-rose-500 text-xl text-center animate-bounce";
+                        // Rupture détectée : on retire le filtre gris, on augmente l'opacité et on fait sauter la cloche !
+                        cloche.className = "text-xl filter-none opacity-100 animate-bounce";
                         badge.classList.remove('hidden');
                         badgeFixe.classList.remove('hidden');
                     } else {
-                        // 🟢 Tout est confort, la cloche reste calme
-                        cloche.className = "fa-solid fa-bell text-slate-400 text-xl";
+                        // Tout est OK : la cloche redevient grise et calme
+                        cloche.className = "text-xl filter grayscale opacity-40";
                         badge.classList.add('hidden');
                         badgeFixe.classList.add('hidden');
                     }
+
                 } catch(e) { console.error("Erreur check cloche:", e); }
             }
 
