@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 3 : api.py (Version Rectifiée Série C - ÉTAPE 1 SUR 3)
+# MODULE 3 : api.py (Version Premium Maquette Serge - PARTIE 1 SUR 2)
 # =====================================================================
 import sqlite3
 import os
@@ -25,9 +25,6 @@ app = FastAPI(
     title="KashFlow Cloud v5.5",
     description="Moteur réseau et interface de supervision mobile du gérant."
 )
-# =====================================================================
-# MODULE 3 : api.py (Version Rectifiée Série C - ÉTAPE 2 SUR 3)
-# =====================================================================
 
 origines_autorisees = [
     origine.strip()
@@ -61,16 +58,12 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
         raise HTTPException(status_code=401, detail="Clé API invalide.")
 
 
-# =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 1 SUR 3)
-# =====================================================================
-
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
     """Renvoie l'application web mobile du gérant calquée à 100% sur les maquettes de Serge."""
     nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW ENTREPRISE"
     
-    # 🎨 REPRODUCTION FIDÈLE DE LA MAQUETTE 1 : Fond gris-bleu clair (#f3f7fa)
+    # 🎨 REPRODUCTION FIDÈLE DE LA MAQUETTE 1 : Fond gris-bleu clair (#f4f7fa)
     html_content = f"""
     <!DOCTYPE html>
     <html lang="fr">
@@ -78,7 +71,7 @@ def page_accueil_supervision_mobile():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Supervision - {nom_boutique}</title>
-        <!-- Chargement sécurisé de Tailwind et FontAwesome pour les icônes de tes maquettes -->
+        <!-- 🟢 CORRECTIF ABSOLU : CDN officiels et sécurisés pour l'allumage sur ton Pixel -->
         <script src="https://jsdelivr.net"></script>
         <link rel="stylesheet" href="https://cloudflare.com">
     </head>
@@ -92,8 +85,8 @@ def page_accueil_supervision_mobile():
             
             <!-- 🔔 LA CLOCHE MINIATURISÉE DE LA MAQUETTE 1 -->
             <div class="relative cursor-pointer bg-white p-2.5 rounded-xl border border-slate-100 shadow-xs active:scale-95 transition-transform" onclick="ouvrirAlerteStocks()">
-                <!-- Badge numérique avec clignotement doux (animate-pulse) -->
-                <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-md z-10 animate-pulse">0</div>
+                <!-- Badge numérique avec clignotement doux (animate-pulse) et compteur réel -->
+                <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-5 h-5 rounded-full flex items-center justify-center shadow-md z-10 animate-pulse">0</div>
                 <div id="icone-cloche" class="text-lg filter grayscale opacity-30 transition-all duration-300">🔔</div>
             </div>
         </div>
@@ -140,7 +133,7 @@ def page_accueil_supervision_mobile():
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 2 SUR 3)
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 1 SUR 3)
 # =====================================================================
 
     html_content += """
@@ -196,7 +189,6 @@ def page_accueil_supervision_mobile():
                 const articlesEnAlerte = listeStocksGlobaux.filter(i => i.quantite_restante <= i.seuil_alerte_applique);
                 const el = document.getElementById('contenu-section');
                 
-                // On prépare le conteneur visuel épuré
                 document.getElementById('zone-affichage').style.display = 'block';
                 el.innerHTML = "";
                 
@@ -226,7 +218,6 @@ def page_accueil_supervision_mobile():
                     conteneur.innerHTML = "";
                     res.employes.forEach(emp => {
                         const bouton = document.createElement('button');
-                        // Stylisation grise et blanche très propre des macarons
                         bouton.className = "bg-[#f8fafc] border border-slate-200/80 text-slate-700 text-xxs font-extrabold px-3.5 py-2 rounded-xl shadow-3xs active:bg-indigo-950 active:text-white cursor-pointer transition-all uppercase tracking-wide";
                         bouton.innerText = emp;
                         bouton.onclick = () => chargerHistoriqueCaissiereDirect(emp);
@@ -236,7 +227,7 @@ def page_accueil_supervision_mobile():
             }
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 3.1 SUR 2)
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 2 SUR 3)
 # =====================================================================
 
     html_content += """
@@ -253,9 +244,9 @@ def page_accueil_supervision_mobile():
                     if(res.total_ventes_effectuees === 0) {
                         el.innerHTML = `
                             <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-md">
-                                <div class="w-full bg-[#1e3a8a] text-white rounded-xl p-3.5 flex items-center gap-3 shadow-md mb-2">
+                                <div class="w-full bg-[#1c355e] text-white rounded-xl p-3.5 flex items-center gap-3 shadow-md mb-2">
                                     <span class="text-xl">📋</span>
-                                    <div class="text-left font-black tracking-wider text-sm uppercase">DOSSIER FACTURES :<br><span class="text-emerald-400 font-extrabold text-base">${caissiere}</span></div>
+                                    <div class="text-left font-black tracking-wider text-sm uppercase">DOSSIER FACTURES :<br><span class="text-emerald-400 font-extrabold text-base">${caissiere.toUpperCase()}</span></div>
                                 </div>
                                 <div class="bg-[#f0f4f8] border border-slate-200 text-slate-700 rounded-lg p-2.5 text-center font-bold text-xxs">
                                     Tiroir-Caisse : 0 facture(s)
@@ -284,6 +275,7 @@ def page_accueil_supervision_mobile():
                         <!-- La barre Tiroir-Caisse avec mise à jour du CA en direct -->
                         <div class="bg-[#e4effb] border border-[#cbdff4] text-[#1c355e] rounded-lg p-2.5 text-left font-bold text-xs flex justify-between items-center shadow-3xs">
                             <span>Tiroir-Caisse : ${res.total_ventes_effectuees} facture(s)</span>
+                            <span class="text-4xs text-[#1c355e] bg-white px-2 py-0.5 rounded-full border border-blue-100 shadow-2xs font-extrabold">CA : ${cumulCA.toLocaleString()} FCFA</span>
                         </div>
                         
                         <div class="space-y-4">`;
@@ -291,9 +283,9 @@ def page_accueil_supervision_mobile():
                     // 3. Dessin des cartes de factures (Ton encadré beige avec la roue dentée)
                     res.liste_ventes.forEach(v => {
                         html += `
-                        <div class="bg-[#faf6f0] border border-[#ebdccf] rounded-2xl p-4 shadow-3xs relative">
+                        <div class="bg-[#faf6f0] border border-[#ebdccf] rounded-2xl p-4 shadow-3xs relative text-left">
                             <!-- La petite roue dentée d'ingénierie de ton dessin -->
-                            <div class="absolute top-4 right-4 text-slate-400 text-base"><i class="fa-solid fa-gear opacity-60"></i></div>
+                            <div class="absolute top-4 right-4 text-slate-400 text-base"><i class="fa-solid fa-gear opacity-60 animate-spin-slow"></i></div>
                             
                             <h4 class="text-base font-black text-slate-800 tracking-tight">Facture #00${v.facture_no}</h4>
                             
@@ -323,12 +315,7 @@ def page_accueil_supervision_mobile():
                     el.innerHTML = html;
                 } catch(e) { el.innerHTML = "<div class='bg-white rounded-3xl p-5 border border-slate-100 shadow-sm text-center text-rose-500 font-bold'>❌ Échec de chargement du dossier caissière.</div>"; }
             }
-    """
-# =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 3.2 SUR 2)
-# =====================================================================
 
-    html_content += """
             async function chargerStocks() {
                 const el = document.getElementById('contenu-section');
                 document.getElementById('zone-affichage').style.display = 'block';
@@ -366,20 +353,17 @@ def page_accueil_supervision_mobile():
                             </div>
                             <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem; margin-top:1rem;'>
                                 <p>🔥 <b>Article Star :</b> ${res.article_le_plus_vendu}</p>
-                                <p style='border-top:1px solid #e2e8f0; margin-top:0.5rem; pt-2; font-style:italic;'>📈 ${res.comparatif_performance_n_1}</p>
+                                <p>📈 <b>Comparatif Performance N-1 :</b> ${res.comparatif_performance_n_1}</p>
                             </div>
                         </div>`;
-                } catch(e) { el.innerHTML = "<p style='color:#ef4444;'>❌ Erreur de calcul.</p>"; }
+                } catch(e) { el.innerHTML = "❌ Erreur de calcul."; }
             }
-        </script>
-    </body>
-    </html>
-    """
+"""
     return html_content
+# =====================================================================
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 3.3 SUR 3)
+# =====================================================================
 
-# =====================================================================
-# LES ROUTES EN PYTHON CI-DESSOUS RESTENT IDENTIQUES À TON CODE D'ORIGINE
-# =====================================================================
 @app.post("/ventes/synchroniser", dependencies=[Depends(verifier_cle_api)])
 def api_centraliser_vente(donnees: VenteSchemaReseau):
     try:
@@ -390,7 +374,7 @@ def api_centraliser_vente(donnees: VenteSchemaReseau):
         deja_sync = connexion.execute("SELECT id FROM ventes WHERE reference_locale = ?", (donnees.reference_locale,)).fetchone()
         connexion.close()
         if deja_sync:
-            return {"statut": "Déjà synchronisé", "facture_id_cloud": deja_sync}
+            return {"statut": "Déjà synchronisé", "facture_id_cloud": deja_sync[0]}
         regime_tva = int(donnees.applique_tva) if donnees.applique_tva is not None else data_base.obtenir_regime_tva_employe(donnees.caissiere)
         total_ht = donnees.prix_ht * donnees.quantite
         tva_calculee = total_ht * (19.25 / 100) if regime_tva == 1 else 0.0
