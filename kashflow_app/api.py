@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - PARTIE 1 SUR 2)
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 1 SUR 7)
 # =====================================================================
 import sqlite3
 import os
@@ -18,13 +18,16 @@ if DOSSIER_DU_FICHIER not in sys.path:
 
 import data_base
 
-# On s'assure que l'API pointe sur la MEME chaîne de base de données que l'application
+# Déclenchement automatique des configurations d'usine au allumage
 data_base.initialisation_systeme()
 
 app = FastAPI(
     title="KashFlow Cloud v5.5",
     description="Moteur réseau et interface de supervision mobile du gérant."
 )
+# =====================================================================
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 2 SUR 7)
+# =====================================================================
 
 origines_autorisees = [
     origine.strip()
@@ -48,7 +51,9 @@ class VenteSchemaReseau(BaseModel):
     quantite: int
     caissiere: str
     applique_tva: bool | None = None
-
+# =====================================================================
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 3 SUR 7)
+# =====================================================================
 
 def verifier_cle_api(x_api_key: str | None = Header(default=None)):
     cle_attendue = os.environ.get("KASHFLOW_API_KEY", "").strip()
@@ -71,7 +76,7 @@ def page_accueil_supervision_mobile():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Supervision - {nom_boutique}</title>
-        <!-- 🟢 CORRECTIF ABSOLU : CDN officiels et sécurisés pour l'allumage sur ton Pixel -->
+        <!-- 🟢 CORRECTIF ABSOLU : CDN officiels complets pour l'allumage sur ton Google Pixel -->
         <script src="https://jsdelivr.net"></script>
         <link rel="stylesheet" href="https://cloudflare.com">
     </head>
@@ -90,18 +95,23 @@ def page_accueil_supervision_mobile():
                 <div id="icone-cloche" class="text-lg filter grayscale opacity-30 transition-all duration-300">🔔</div>
             </div>
         </div>
+    """
+# =====================================================================
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 4 SUR 7)
+# =====================================================================
 
+    html_content += """
         <div class="max-w-md mx-auto px-5 space-y-5">
             <!-- Grille des Boutons : État des Stocks et Chiffre d'Affaires de la Maquette 1 -->
             <div class="grid grid-cols-2 gap-4">
-                <button onclick="chargerStocks()" class="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-xs active:scale-95 transition-transform cursor-pointer">
+                <button onclick="chargerStocks()" class="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-xs active:scale-95 transition-transform cursor-pointer font-bold text-xs text-slate-700">
                     <div class="text-2xl mb-1 text-slate-700">📦</div>
-                    <span class="text-xs font-bold text-slate-700 tracking-tight">État des Stocks</span>
+                    État des Stocks
                 </button>
 
-                <button onclick="chargerStatistiques()" class="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-xs active:scale-95 transition-transform cursor-pointer">
+                <button onclick="chargerStatistiques()" class="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-xs active:scale-95 transition-transform cursor-pointer font-bold text-xs text-slate-700">
                     <div class="text-2xl mb-1 text-slate-700">📊</div>
-                    <span class="text-xs font-bold text-slate-700 tracking-tight">Chiffre d'Affaires</span>
+                    Chiffre d'Affaires
                 </button>
             </div>
 
@@ -133,7 +143,7 @@ def page_accueil_supervision_mobile():
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 1 SUR 3)
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 5 SUR 7)
 # =====================================================================
 
     html_content += """
@@ -207,7 +217,12 @@ def page_accueil_supervision_mobile():
                 html += "</div>";
                 el.innerHTML = html;
             }
+    """
+# =====================================================================
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 6.1 SUR 7)
+# =====================================================================
 
+    html_content += """
             // --- 📋 MACARONS TACTILES DE LA MAQUETTE 1 ---
             async function chargerProfilsCaissieresTactiles() {
                 const conteneur = document.getElementById('liste-boutons-caissieres');
@@ -218,19 +233,14 @@ def page_accueil_supervision_mobile():
                     conteneur.innerHTML = "";
                     res.employes.forEach(emp => {
                         const bouton = document.createElement('button');
-                        bouton.className = "bg-[#f8fafc] border border-slate-200/80 text-slate-700 text-xxs font-extrabold px-3.5 py-2 rounded-xl shadow-3xs active:bg-indigo-950 active:text-white cursor-pointer transition-all uppercase tracking-wide";
+                        bouton.className = "bg-[#f8fafc] border border-slate-200/80 text-slate-700 text-xxs font-extrabold px-3.5 py-2 rounded-xl shadow-xs active:bg-indigo-950 active:text-white cursor-pointer transition-all uppercase tracking-wide";
                         bouton.innerText = emp;
                         bouton.onclick = () => chargerHistoriqueCaissiereDirect(emp);
                         conteneur.appendChild(bouton);
                     });
                 } catch(e) { conteneur.innerHTML = "<span class='text-rose-500 font-bold text-4xs'>Échec de liaison employés.</span>"; }
             }
-    """
-# =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 2 SUR 3)
-# =====================================================================
 
-    html_content += """
             // --- 📱 REPRODUCTION INTELLIGENTE ET INTERACTIVE DE TA DEUXIÈME MAQUETTE ---
             async function chargerHistoriqueCaissiereDirect(caissiere) {
                 const el = document.getElementById('contenu-section');
@@ -241,7 +251,7 @@ def page_accueil_supervision_mobile():
                     const r = await fetch(`/ventes/caissiere/${encodeURIComponent(caissiere)}`, { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
                     
-                    if(res.total_ventes_effectuees === 0) {
+                    if(!res.liste_ventes || res.liste_ventes.length === 0) {
                         el.innerHTML = `
                             <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-md">
                                 <div class="w-full bg-[#1c355e] text-white rounded-xl p-3.5 flex items-center gap-3 shadow-md mb-2">
@@ -255,14 +265,14 @@ def page_accueil_supervision_mobile():
                         return;
                     }
 
-                    // 1. Calcul du Chiffre d'Affaires de cette vendeuse actualisé au centime près
+                    // 1. Calcul du Chiffre d'Affaires de cette vendeuse actualisé en direct
                     let cumulCA = 0.0;
                     res.liste_ventes.forEach(v => {
                         const mnt = parseFloat(String(v.montant_ttc).replace(/[^0-9.]/g, ''));
                         if(!isNaN(mnt)) cumulCA += mnt;
                     });
 
-                    // 2. Dessin du haut de ton dossier de factures de ton dessin
+                    // 2. Dessin du haut de ton dossier de factures de ta maquette 2
                     let html = `
                     <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-md space-y-4">
                         
@@ -275,7 +285,7 @@ def page_accueil_supervision_mobile():
                         <!-- La barre Tiroir-Caisse avec mise à jour du CA en direct -->
                         <div class="bg-[#e4effb] border border-[#cbdff4] text-[#1c355e] rounded-lg p-2.5 text-left font-bold text-xs flex justify-between items-center shadow-3xs">
                             <span>Tiroir-Caisse : ${res.total_ventes_effectuees} facture(s)</span>
-                            <span class="text-4xs text-[#1c355e] bg-white px-2 py-0.5 rounded-full border border-blue-100 shadow-2xs font-extrabold">CA : ${cumulCA.toLocaleString()} FCFA</span>
+                            <span class="text-xs text-[#1c355e] bg-white px-2.5 py-1 rounded-full border border-blue-100 shadow-2xs font-extrabold">CA : ${cumulCA.toLocaleString()} FCFA</span>
                         </div>
                         
                         <div class="space-y-4">`;
@@ -284,8 +294,7 @@ def page_accueil_supervision_mobile():
                     res.liste_ventes.forEach(v => {
                         html += `
                         <div class="bg-[#faf6f0] border border-[#ebdccf] rounded-2xl p-4 shadow-3xs relative text-left">
-                            <!-- La petite roue dentée d'ingénierie de ton dessin -->
-                            <div class="absolute top-4 right-4 text-slate-400 text-base"><i class="fa-solid fa-gear opacity-60 animate-spin-slow"></i></div>
+                            <div class="absolute top-4 right-4 text-slate-400 text-base"><i class="fa-solid fa-gear opacity-60"></i></div>
                             
                             <h4 class="text-base font-black text-slate-800 tracking-tight">Facture #00${v.facture_no}</h4>
                             
@@ -315,7 +324,12 @@ def page_accueil_supervision_mobile():
                     el.innerHTML = html;
                 } catch(e) { el.innerHTML = "<div class='bg-white rounded-3xl p-5 border border-slate-100 shadow-sm text-center text-rose-500 font-bold'>❌ Échec de chargement du dossier caissière.</div>"; }
             }
+    """
+# =====================================================================
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 6.2 SUR 7)
+# =====================================================================
 
+    html_content += """
             async function chargerStocks() {
                 const el = document.getElementById('contenu-section');
                 document.getElementById('zone-affichage').style.display = 'block';
@@ -340,7 +354,7 @@ def page_accueil_supervision_mobile():
                 const el = document.getElementById('contenu-section');
                 document.getElementById('zone-affichage').style.display = 'block';
                 let cible = prompt("Tapez la date au format J/M/AAAA (ex: 12/9/2026) :");
-                if(!cible) return;
+                if(!get_cible = cible) return;
                 el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul...</p>";
                 try {
                     const r = await fetch(`/ventes/statistiques?temporalite=JOUR&cible=${encodeURIComponent(cible)}`, { headers: { 'X-API-Key': API_KEY } });
@@ -353,19 +367,23 @@ def page_accueil_supervision_mobile():
                             </div>
                             <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem; margin-top:1rem;'>
                                 <p>🔥 <b>Article Star :</b> ${res.article_le_plus_vendu}</p>
-                                <p>📈 <b>Comparatif Performance N-1 :</b> ${res.comparatif_performance_n_1}</p>
+                                <p style='border-top:1px solid #e2e8f0; margin-top:0.5rem; pt-2; font-style:italic;'>📈 ${res.comparatif_performance_n_1}</p>
                             </div>
                         </div>`;
-                } catch(e) { el.innerHTML = "❌ Erreur de calcul."; }
+                } catch(e) { el.innerHTML = "<p style='color:#ef4444;'>❌ Erreur de calcul.</p>"; }
             }
-"""
+        </script>
+    </body>
+    </html>
+    """
     return html_content
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 3.3 SUR 3)
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 7 SUR 7)
 # =====================================================================
 
 @app.post("/ventes/synchroniser", dependencies=[Depends(verifier_cle_api)])
 def api_centraliser_vente(donnees: VenteSchemaReseau):
+    """Intercepte, calcule la TVA et centralise la vente du magasin."""
     try:
         donnees.caissiere = donnees.caissiere.strip().lower()
         if donnees.prix_ht <= 0 or not 0 < donnees.quantite <= 1000:
@@ -385,6 +403,7 @@ def api_centraliser_vente(donnees: VenteSchemaReseau):
 
 @app.get("/ventes/statistiques", dependencies=[Depends(verifier_cle_api)])
 def api_obtenir_statistiques(temporalite: str, cible: str):
+    """Calcule le CA et le produit star de la période pour l'écran mobile."""
     try:
         analyse = data_base.extraire_statistiques_avancees(temporalite, cible)
         return {"chiffre_affaires_ttc": analyse["ca_total"], "article_le_plus_vendu": str(analyse["produit_phare"]).replace("{", "").replace("}", ""), "comparatif_performance_n_1": analyse["message_performance"]}
@@ -392,17 +411,20 @@ def api_obtenir_statistiques(temporalite: str, cible: str):
 
 @app.get("/ventes/caissiere/{nom_caissiere}", dependencies=[Depends(verifier_cle_api)])
 def api_historique_caissiere(nom_caissiere: str):
+    """Extrait l'audit des ventes d'une vendeuse pour l'affichage mobile du patron."""
     try:
         ventes = data_base.recuperer_ventes_par_caissiere(nom_caissiere)
         if not ventes: return {"total_ventes_effectuees": 0, "liste_ventes": []}
         liste_formatee = []
         for v in ventes:
+            # 🟢 SÉCURITÉ UNIONS : Extraction propre du tuple SQLite d'origine
             liste_formatee.append({"facture_no": v[0], "client": v[1], "article": str(v[2]).replace("{", "").replace("}", ""), "montant_ttc": f"{v[3]} FCFA", "date": v[4], "heure": v[5]})
         return {"total_ventes_effectuees": len(liste_formatee), "liste_ventes": liste_formatee}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/stocks/etat", dependencies=[Depends(verifier_cle_api)])
 def api_consulter_stocks_cloud():
+    """Vérifie l'état d'inventaire et renvoie le statut avec seuil dynamique 10/5."""
     try:
         connexion = sqlite3.connect(data_base.DB_NAME)
         curseur = connexion.cursor()
@@ -423,6 +445,7 @@ def api_consulter_stocks_cloud():
 
 @app.get("/employes/liste", dependencies=[Depends(verifier_cle_api)])
 def api_liste_des_employes():
+    """Extrait la liste unique des caissières enregistrées pour alimenter le smartphone du patron."""
     try:
         liste_employes = data_base.recuperer_liste_tous_employes()
         if not liste_employes: return {"employes": ["caissiere1", "caissiere2"]}
