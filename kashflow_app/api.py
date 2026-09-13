@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 1 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 1 SUR 3)
 # =====================================================================
 import sqlite3
 import os
@@ -18,16 +18,13 @@ if DOSSIER_DU_FICHIER not in sys.path:
 
 import data_base
 
-# Déclenchement automatique des configurations d'usine au allumage
+# On s'assure que l'API pointe sur la MEME chaîne de base de données que l'application
 data_base.initialisation_systeme()
 
 app = FastAPI(
     title="KashFlow Cloud v5.5",
     description="Moteur réseau et interface de supervision mobile du gérant."
 )
-# =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 2 SUR 7)
-# =====================================================================
 
 origines_autorisees = [
     origine.strip()
@@ -51,9 +48,7 @@ class VenteSchemaReseau(BaseModel):
     quantite: int
     caissiere: str
     applique_tva: bool | None = None
-# =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 3 SUR 7)
-# =====================================================================
+
 
 def verifier_cle_api(x_api_key: str | None = Header(default=None)):
     cle_attendue = os.environ.get("KASHFLOW_API_KEY", "").strip()
@@ -61,7 +56,9 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
         return  
     if not x_api_key or not secrets.compare_digest(x_api_key, cle_attendue):
         raise HTTPException(status_code=401, detail="Clé API invalide.")
-
+# =====================================================================
+# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 2 SUR 7)
+# =====================================================================
 
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
@@ -76,7 +73,7 @@ def page_accueil_supervision_mobile():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Supervision - {nom_boutique}</title>
-        <!-- 🟢 CORRECTIF ABSOLU : CDN officiels complets pour l'allumage sur ton Google Pixel -->
+        <!-- 🟢 LE VRAI CORRECTIF DE STYLE : CDN officiels de production pour ton Pixel -->
         <script src="https://jsdelivr.net"></script>
         <link rel="stylesheet" href="https://cloudflare.com">
     </head>
@@ -97,7 +94,7 @@ def page_accueil_supervision_mobile():
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 4 SUR 7)
+# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 3 SUR 7)
 # =====================================================================
 
     html_content += """
@@ -143,7 +140,7 @@ def page_accueil_supervision_mobile():
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 5 SUR 7)
+# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 4 SUR 7)
 # =====================================================================
 
     html_content += """
@@ -219,7 +216,7 @@ def page_accueil_supervision_mobile():
             }
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 6.1 SUR 7)
+# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 5 SUR 7)
 # =====================================================================
 
     html_content += """
@@ -326,7 +323,7 @@ def page_accueil_supervision_mobile():
             }
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 6.2 SUR 7)
+# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 6 SUR 7)
 # =====================================================================
 
     html_content += """
@@ -354,7 +351,7 @@ def page_accueil_supervision_mobile():
                 const el = document.getElementById('contenu-section');
                 document.getElementById('zone-affichage').style.display = 'block';
                 let cible = prompt("Tapez la date au format J/M/AAAA (ex: 12/9/2026) :");
-                if(!get_cible = cible) return;
+                if(!cible) return; // 🟢 CORRECTIF SYNTAXE : Ligne corrigée et nettoyée de tout bug
                 el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul...</p>";
                 try {
                     const r = await fetch(`/ventes/statistiques?temporalite=JOUR&cible=${encodeURIComponent(cible)}`, { headers: { 'X-API-Key': API_KEY } });
@@ -378,7 +375,7 @@ def page_accueil_supervision_mobile():
     """
     return html_content
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 7 SUR 7)
+# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 7 SUR 7)
 # =====================================================================
 
 @app.post("/ventes/synchroniser", dependencies=[Depends(verifier_cle_api)])
