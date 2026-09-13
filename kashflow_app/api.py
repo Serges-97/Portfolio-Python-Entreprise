@@ -65,10 +65,9 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
 
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
-    """Renvoie l'application web mobile du gérant calquée à 100% sur les maquettes de Serge."""
+    """Renvoie l'application mobile avec du style CSS pur embarqué, garanti sans bug sur Google Pixel."""
     nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW ENTREPRISE"
     
-    # 🎨 REPRODUCTION INTÉGRALE ET CORRIGÉE DU VISUEL DE TES MAQUETTES
     html_content = f"""
     <!DOCTYPE html>
     <html lang="fr">
@@ -76,25 +75,59 @@ def page_accueil_supervision_mobile():
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{nom_boutique}</title>
-        <!-- 🟢 SÉCURISATION DES LIENS DE STYLE POUR GOOGLE PIXEL & TOUS SMARTPHONES -->
-        <script src="https://jsdelivr.net"></script>
-        <link rel="stylesheet" href="https://cloudflare.com">
-    </head>
-    <body class="bg-slate-100 min-h-screen flex flex-col items-center p-4 text-slate-800 antialiased">
-
-        <!-- Container Smartphone -->
-        <div class="relative w-full max-w-[400px] bg-white rounded-[30px] shadow-xl px-5 py-7 min-h-[820px] overflow-hidden flex flex-col">
+        <!-- 🟢 CORRECTIF GOOGLE PIXEL : Plus besoin de CDN internet pour dessiner tes maquettes ! -->
+        <style>
+            body {{ background-color: #cbd5e1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px; display: flex; flex-col: column; align-items: center; justify-content: center; min-height: 100vh; }}
+            .smartphone-container {{ width: 100%; max-width: 380px; background-color: #ffffff; border-radius: 32px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); padding: 25px 20px; min-height: 720px; position: relative; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; }}
+            header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }}
+            h1 {{ font-size: 22px; font-weight: 800; color: #334155; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }}
+            .cloche-btn {{ background-color: #fef3c7; color: #d97706; border: none; padding: 10px 12px; border-radius: 9999px; font-size: 16px; cursor: pointer; position: relative; }}
+            .badge-num {{ position: absolute; top: -6px; right: -6px; background-color: #dc2626; color: white; font-size: 10px; font-weight: 900; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+            .action-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }}
+            .card-action {{ background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s; text-align: center; }}
+            .card-action:active {{ transform: scale(0.96); background-color: #f1f5f9; }}
+            .card-action-title {{ font-size: 13px; font-weight: 700; color: #475569; }}
+            .panel-registre {{ background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 28px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; }}
+            .panel-registre h2 {{ font-size: 16px; font-weight: 800; color: #1e293b; margin: 6px 0 2px 0; }}
+            .panel-registre p {{ font-size: 11px; color: #64748b; margin: 0; }}
+            .section-caissieres h3 {{ font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }}
+            .macarons-flex {{ display: flex; flex-wrap: wrap; gap: 10px; }}
+            .macaron-btn {{ background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 9999px; padding: 8px 18px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; text-transform: capitalize; }}
+            .macaron-btn:active {{ background-color: #1d4ed8; color: white; }}
             
-            <!-- HEADER AVEC CLOCHE ET BADGE DYNAMIQUE -->
-            <header class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-extrabold text-slate-700 tracking-wide uppercase">{nom_boutique.lower()}</h1>
-                <div class="relative cursor-pointer bg-amber-50 text-amber-600 p-2.5 rounded-full text-base active:scale-95 transition-transform" onclick="ouvrirAlerteStocks()">
-                    <!-- Badge numérique avec clignotement doux (animate-pulse) et compteur de ruptures réelles -->
-                    <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-red-600 text-white font-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center shadow-md z-10 animate-pulse">0</div>
-                    <i id="icone-cloche" class="fa-solid fa-bell"></i>
-                </div>
+            /* Fenêtre Modale Maquette 2 */
+            .modal-dossier {{ display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.98); padding: 20px; border-radius: 32px; z-index: 50; flex-direction: column; overflow-y: auto; box-sizing: border-box; }}
+            .modal-dossier.flex {{ display: flex !important; }}
+            .bandeau-bleu {{ background-color: #1c355e; color: white; border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }}
+            .bandeau-title {{ font-size: 12px; font-weight: 900; tracking-wide: 0.5px; text-transform: uppercase; line-height: 1.3; }}
+            .tiroir-box {{ background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 700; margin-bottom: 16px; }}
+            .close-btn {{ background: none; border: none; color: #dc2626; font-size: 22px; cursor: pointer; padding: 0 5px; font-weight: bold; }}
+            
+            /* Cartes de factures beiges */
+            .card-facture-beige {{ background-color: #faf6f0; border: 1px solid #ebdccf; border-radius: 16px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }}
+            .card-facture-header {{ background-color: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #ebdccf; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 800; color: #1e293b; }}
+            .card-facture-body {{ padding: 16px; text-align: left; }}
+            .details-section {{ margin-bottom: 12px; }}
+            .details-label {{ font-size: 9px; color: #94a3b8; text-transform: uppercase; font-weight: bold; tracking-wide: 0.5px; margin-bottom: 2px; }}
+            .details-val {{ font-size: 13px; color: #475569; font-weight: 600; }}
+            .montant-flash {{ background-color: #f0fdf4; border: 1px dashed #bbf7d0; color: #166534; border-radius: 12px; padding: 12px; text-align: center; font-size: 20px; font-weight: 900; margin: 12px 0; letter-spacing: -0.5px; }}
+        </style>
+    </head>
+    <body>
+
+        <!-- Container Smartphone dessiné en CSS natif -->
+        <div class="smartphone-container">
+            
+            <!-- HEADER -->
+            <header>
+                <h1>{nom_boutique.lower()}</h1>
+                <button class="cloche-btn" onclick="ouvrirAlerteStocks()">
+                    <div id="badge-cloche" class="hidden badge-num">0</div>
+                    <span id="icone-cloche">🔔</span>
+                </button>
             </header>
     """
+
 # =====================================================================
 # MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 4 SUR 7)
 # =====================================================================
@@ -245,7 +278,7 @@ def page_accueil_supervision_mobile():
                     res.employes.forEach(emp => {
                         const bouton = document.createElement('button');
                         // Style de tes macarons : bleu clair avec petite icône utilisateur
-                        bouton.className = "bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-5 py-2 text-sm font-semibold flex items-center gap-2 capitalize cursor-pointer active:bg-blue-700 active:text-white transition-all shadow-4xs";
+                        bouton.className = "macaron-btn";
                         bouton.innerHTML = `<i class="fa-solid fa-user text-blue-400"></i> ${emp}`;
                         bouton.onclick = () => chargerHistoriqueCaissiereDirect(emp);
                         conteneur.appendChild(bouton);
@@ -275,39 +308,34 @@ def page_accueil_supervision_mobile():
 
                     let html = "";
                     // 3. Dessin rigoureux des cartes de factures beiges de ta maquette 2
+                  // 🟢 REMPLACE LA SÉQUENCE TEMPLATE DES FACTURES PAR CELLE-CI :
                     res.liste_ventes.forEach(v => {
                         html += `
-                        <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden text-left">
-                            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
-                                <h3 class="text-base font-bold text-slate-800">Facture #00${v.facture_no}</h3>
-                                <i class="text-slate-400 fa-solid fa-gear animate-spin-slow"></i>
+                        <div class="card-facture-beige">
+                            <div class="card-facture-header">
+                                <span>Facture #00${v.facture_no}</span>
+                                <span style="color:#94a3b8;">⚙️</span>
                             </div>
-                            
-                            <div class="p-5">
-                                <div class="mb-4">
-                                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Détails du Client</div>
-                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-2"><i class="text-slate-400 fa-solid fa-user"></i> Client : ${v.client.toUpperCase()}</div>
+                            <div class="card-facture-body">
+                                <div class="details-section">
+                                    <div class="details-label">Détails du Client</div>
+                                    <div class="details-val">👤 Client : ${v.client.toUpperCase()}</div>
                                 </div>
-
-                                <div class="mb-4">
-                                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Détails de la Transaction</div>
-                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-2"><i class="text-slate-400 fa-solid fa-clock"></i> ${v.date} à ${v.heure}</div>
+                                <div class="details-section" style="border-top: 1px dashed #ebdccf; padding-top: 8px; margin-top: 8px;">
+                                    <div class="details-label">Détails de la Transaction</div>
+                                    <div class="details-val">&nbsp;🕒 ${v.date} à ${v.heure}</div>
                                 </div>
-
-                                <div class="mb-4">
-                                    <!-- Le montant en gros bleu/vert centré de ton dessin -->
-                                    <div class="bg-green-50 border border-dashed border-green-200 rounded-xl p-3 text-center text-xl font-black text-green-700 tracking-wide shadow-4xs">
-                                        ${v.montant_ttc}
-                                    </div>
+                                <div class="montant-flash">
+                                    ${v.montant_ttc}
                                 </div>
-
-                                <div class="mt-2">
-                                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Produit</div>
-                                    <div class="text-sm font-bold text-slate-800 uppercase tracking-tight">${v.article}</div>
+                                <div class="details-section">
+                                    <div class="details-label">Produit</div>
+                                    <div class="details-val" style="font-size:14px; color:#1e293b; font-weight:800;">${v.article.toUpperCase()}</div>
                                 </div>
                             </div>
                         </div>`;
                     });
+
                     contenu.innerHTML = html;
                 } catch(e) { contenu.innerHTML = "<p class='text-rose-500 font-bold text-xs text-center py-4'>❌ Erreur de décodage du dossier.</p>"; }
             }
