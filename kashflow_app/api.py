@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 1 SUR 3)
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 1 SUR 7)
 # =====================================================================
 import sqlite3
 import os
@@ -25,6 +25,9 @@ app = FastAPI(
     title="KashFlow Cloud v5.5",
     description="Moteur réseau et interface de supervision mobile du gérant."
 )
+# =====================================================================
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 2 SUR 7)
+# =====================================================================
 
 origines_autorisees = [
     origine.strip()
@@ -48,7 +51,9 @@ class VenteSchemaReseau(BaseModel):
     quantite: int
     caissiere: str
     applique_tva: bool | None = None
-
+# =====================================================================
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 3 SUR 7)
+# =====================================================================
 
 def verifier_cle_api(x_api_key: str | None = Header(default=None)):
     cle_attendue = os.environ.get("KASHFLOW_API_KEY", "").strip()
@@ -56,91 +61,97 @@ def verifier_cle_api(x_api_key: str | None = Header(default=None)):
         return  
     if not x_api_key or not secrets.compare_digest(x_api_key, cle_attendue):
         raise HTTPException(status_code=401, detail="Clé API invalide.")
-# =====================================================================
-# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 2 SUR 7)
-# =====================================================================
+
 
 @app.get("/", response_class=HTMLResponse)
 def page_accueil_supervision_mobile():
     """Renvoie l'application web mobile du gérant calquée à 100% sur les maquettes de Serge."""
     nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW ENTREPRISE"
     
-    # 🎨 REPRODUCTION FIDÈLE DE LA MAQUETTE 1 : Fond gris-bleu clair (#f4f7fa)
+    # 🎨 REPRODUCTION INTÉGRALE ET CORRIGÉE DU VISUEL DE TES MAQUETTES
     html_content = f"""
     <!DOCTYPE html>
     <html lang="fr">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Supervision - {nom_boutique}</title>
-        <!-- 🟢 LE VRAI CORRECTIF DE STYLE : CDN officiels de production pour ton Pixel -->
+        <title>{nom_boutique}</title>
+        <!-- 🟢 SÉCURISATION DES LIENS DE STYLE POUR GOOGLE PIXEL & TOUS SMARTPHONES -->
         <script src="https://jsdelivr.net"></script>
         <link rel="stylesheet" href="https://cloudflare.com">
     </head>
-    <body class="bg-[#f4f7fa] font-sans text-slate-800 pb-12 antialiased">
-        
-        <!-- En-tête de la Maquette 1 : Titre en minuscules et cloche d'alerte à droite -->
-        <div class="max-w-md mx-auto px-6 py-6 flex justify-between items-center bg-transparent mt-2">
-            <h1 class="text-2xl font-black tracking-tight text-slate-800 flex items-center gap-1" style="font-family: 'Helvetica', sans-serif;">
-                {nom_boutique.lower()}
-            </h1>
+    <body class="bg-slate-100 min-h-screen flex flex-col items-center p-4 text-slate-800 antialiased">
+
+        <!-- Container Smartphone -->
+        <div class="relative w-full max-w-[400px] bg-white rounded-[30px] shadow-xl px-5 py-7 min-h-[820px] overflow-hidden flex flex-col">
             
-            <!-- 🔔 LA CLOCHE MINIATURISÉE DE LA MAQUETTE 1 -->
-            <div class="relative cursor-pointer bg-white p-2.5 rounded-xl border border-slate-100 shadow-xs active:scale-95 transition-transform" onclick="ouvrirAlerteStocks()">
-                <!-- Badge numérique avec clignotement doux (animate-pulse) et compteur réel -->
-                <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white font-black text-4xs w-5 h-5 rounded-full flex items-center justify-center shadow-md z-10 animate-pulse">0</div>
-                <div id="icone-cloche" class="text-lg filter grayscale opacity-30 transition-all duration-300">🔔</div>
-            </div>
-        </div>
+            <!-- HEADER AVEC CLOCHE ET BADGE DYNAMIQUE -->
+            <header class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-extrabold text-slate-700 tracking-wide uppercase">{nom_boutique.lower()}</h1>
+                <div class="relative cursor-pointer bg-amber-50 text-amber-600 p-2.5 rounded-full text-base active:scale-95 transition-transform" onclick="ouvrirAlerteStocks()">
+                    <!-- Badge numérique avec clignotement doux (animate-pulse) et compteur de ruptures réelles -->
+                    <div id="badge-cloche" class="hidden absolute -top-1.5 -right-1.5 bg-red-600 text-white font-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center shadow-md z-10 animate-pulse">0</div>
+                    <i id="icone-cloche" class="fa-solid fa-bell"></i>
+                </div>
+            </header>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 3 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 4 SUR 7)
 # =====================================================================
 
     html_content += """
-        <div class="max-w-md mx-auto px-5 space-y-5">
-            <!-- Grille des Boutons : État des Stocks et Chiffre d'Affaires de la Maquette 1 -->
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="chargerStocks()" class="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-xs active:scale-95 transition-transform cursor-pointer font-bold text-xs text-slate-700">
-                    <div class="text-2xl mb-1 text-slate-700">📦</div>
-                    État des Stocks
-                </button>
+            <!-- GRILLE DES ACTIONS DE LA MAQUETTE 1 -->
+            <main class="grid grid-cols-2 gap-4 mb-6">
+                <div onclick="chargerStocks()" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer active:scale-98 active:bg-slate-100 transition-all shadow-2xs">
+                    <i class="text-2xl text-indigo-900 fa-solid fa-box"></i>
+                    <span class="text-xs font-black text-slate-600 text-center tracking-tight">État des Stocks</span>
+                </div>
+                <div onclick="chargerStatistiques()" class="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex flex-col items-center gap-3 cursor-pointer active:scale-98 active:bg-slate-100 transition-all shadow-2xs">
+                    <i class="text-2xl text-indigo-900 fa-solid fa-chart-bar"></i>
+                    <span class="text-xs font-black text-slate-600 text-center tracking-tight">Chiffre d'Affaires</span>
+                </div>
+            </main>
 
-                <button onclick="chargerStatistiques()" class="bg-white p-4 rounded-2xl border border-slate-100 text-center shadow-xs active:scale-95 transition-transform cursor-pointer font-bold text-xs text-slate-700">
-                    <div class="text-2xl mb-1 text-slate-700">📊</div>
-                    Chiffre d'Affaires
-                </button>
+            <!-- REGISTRE GÉNÉRAL DE LA MAQUETTE 1 -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 text-center mb-6 shadow-xs flex flex-col items-center">
+                <i class="text-3xl text-slate-500 fa-solid fa-clipboard-check mb-2"></i>
+                <h2 class="text-base font-black text-slate-800 mb-1">Registre Général</h2>
+                <p class="text-2xs text-slate-400 mb-3 font-medium">Transactions de la boutique par caissière</p>
+                <i class="text-xs text-slate-300 fa-solid fa-chevron-right animate-pulse"></i>
             </div>
 
-            <!-- 📋 LE GRAND PANNEAU DU REGISTRE GÉNÉRAL DE LA MAQUETTE 1 -->
-            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden p-5 text-center">
-                <div class="flex flex-col items-center py-2">
-                    <div class="text-3xl mb-3 text-slate-700">📋</div>
-                    <h3 class="text-base font-black text-slate-800 tracking-tight">Registre Général</h3>
-                    <p class="text-xxs text-slate-400 mt-1 max-w-xs leading-relaxed">Transactions de la boutique par caissière</p>
-                    <div class="text-slate-800 font-black text-sm mt-4 select-none animate-bounce">&gt;</div>
+            <!-- SECTION SÉLECTION CAISSIÈRE AVEC LES MACARONS TACTILES -->
+            <section class="flex-grow">
+                <h3 class="text-2xs font-extrabold text-slate-400 uppercase tracking-wider mb-3">Sélectionnez une caissière à auditer :</h3>
+                <div id="liste-boutons-caissieres" class="flex flex-wrap gap-2.5">
+                    <!-- Les macarons élégants des vendeuses s'injectent ici automatiquement en JS -->
                 </div>
-                
-                <!-- Zone de sélection tactile immédiate : junior, nathan... -->
-                <div class="border-t border-slate-50 mt-4 pt-4 text-left">
-                    <p class="text-4xs font-bold text-slate-400 tracking-wider uppercase mb-3">Sélectionnez une caissière à auditer :</p>
-                    <div id="liste-boutons-caissieres" class="flex flex-wrap gap-2.5">
-                        <!-- Les macarons élégants s'injectent ici automatiquement en JS -->
+            </section>
+
+            <!-- 📱 FENÊTRE MODALE DES FACTURES (MAQUETTE 2 - CACHÉE AU DÉPART) -->
+            <div id="modal-facturation" class="hidden absolute inset-0 bg-white/98 px-5 py-6 rounded-[30px] z-50 flex-col overflow-y-auto transition-all duration-200">
+                <!-- Header Dossier Bleu Nuit de ton dessin -->
+                <div class="bg-[#1c355e] text-white rounded-2xl p-4 flex items-center gap-4 mb-4 shadow-md">
+                    <i class="text-2xl fa-solid fa-folder-open"></i>
+                    <div class="text-left font-black tracking-wider text-xs uppercase leading-tight">
+                        DOSSIER FACTURES :<br><span id="nom-caissiere-titre" class="text-emerald-400 font-black text-sm">--</span>
                     </div>
                 </div>
+
+                <!-- Tiroir Caisse et Bouton de Fermeture -->
+                <div class="bg-[#e4effb] border border-[#cbdff4] text-[#1c355e] rounded-xl p-3 flex justify-between items-center text-xs font-bold shadow-3xs mb-4">
+                    <span id="compteur-factures-tiroir">Tiroir-Caisse : 0 facture(s)</span>
+                    <button onclick="fermerModal()" class="text-rose-600 text-xl px-2 py-0.5 font-black cursor-pointer active:scale-90 transition-transform"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Conteneur Dynamique pour empiler tes fiches de factures beiges -->
+                <div id="contenu-factures-modale" class="space-y-4 pb-6"></div>
             </div>
 
-            <!-- ZONE D'AFFICHAGE ET CONTENEUR DE LA DEUXIÈME MAQUETTE (CACHÉ AU DÉPART) -->
-            <div id="zone-affichage" class="hidden transition-all duration-300">
-                <div class="flex justify-end mb-2 px-2">
-                    <span onclick="fermerZone()" class="bg-white text-slate-400 border border-slate-100 font-bold px-3 py-1 rounded-xl text-xs cursor-pointer shadow-xs active:bg-slate-50 transition-colors">Fermer ×</span>
-                </div>
-                <div id="contenu-section" class="w-full"></div>
-            </div>
         </div>
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 4 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 5 SUR 7)
 # =====================================================================
 
     html_content += """
@@ -164,8 +175,8 @@ def page_accueil_supervision_mobile():
                 setInterval(verifierAlertesStocksEnArrierePlan, 20000);
             }
 
-            function fermerZone() {
-                document.getElementById('zone-affichage').style.display = 'none';
+            function fermerModal() {
+                document.getElementById('modal-facturation').classList.replace('flex', 'hidden');
             }
 
             // --- 🔔 CLOCHE DE LA MAQUETTE 1 DYNAMIQUE ---
@@ -182,11 +193,11 @@ def page_accueil_supervision_mobile():
                     const badge = document.getElementById('badge-cloche');
                     
                     if(nombreAlertes > 0) {
-                        cloche.className = "text-lg filter-none opacity-100";
+                        cloche.className = "fa-solid fa-bell text-rose-500 text-lg";
                         badge.innerText = nombreAlertes;
                         badge.classList.remove('hidden');
                     } else {
-                        cloche.className = "text-lg filter grayscale opacity-30";
+                        cloche.className = "fa-solid fa-bell text-slate-400";
                         badge.classList.add('hidden');
                     }
                 } catch(e) { console.error("Erreur check cloche:", e); }
@@ -194,33 +205,36 @@ def page_accueil_supervision_mobile():
 
             function ouvrirAlerteStocks() {
                 const articlesEnAlerte = listeStocksGlobaux.filter(i => i.quantite_restante <= i.seuil_alerte_applique);
-                const el = document.getElementById('contenu-section');
+                const modal = document.getElementById('modal-facturation');
+                const contenu = document.getElementById('contenu-factures-modale');
                 
-                document.getElementById('zone-affichage').style.display = 'block';
-                el.innerHTML = "";
+                document.getElementById('nom-caissiere-titre').innerText = "STOCKS CRITIQUES";
+                document.getElementById('compteur-factures-tiroir').innerText = `Alerte : ${articlesEnAlerte.length} produit(s)`;
+                modal.classList.replace('hidden', 'flex');
+                contenu.innerHTML = "";
                 
                 if(articlesEnAlerte.length === 0) {
-                    el.innerHTML = "<div class='bg-white rounded-3xl p-5 border border-slate-100 shadow-sm text-center font-bold text-emerald-600 text-xs'>🟢 Aucun produit en seuil critique. Tous les stocks sont confortables !</div>";
+                    contenu.innerHTML = "<div class='bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl p-5 text-center font-bold text-xs shadow-3xs'>🟢 Aucun produit en seuil critique. Tous les stocks sont confortables !</div>";
                     return;
                 }
                 
-                let html = "<div class='bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3'><h3 class='text-xs font-black text-slate-800 uppercase tracking-wide mb-2'>🚨 STOCKS CRITIQUES</h3>";
+                let html = "";
                 articlesEnAlerte.forEach(i => {
-                    html += `<div class='bg-rose-50 border border-rose-100 text-rose-900 rounded-xl p-3 flex justify-between items-center font-bold text-xxs'>
+                    html += `
+                    <div class='bg-rose-50 border border-rose-100 text-rose-900 rounded-2xl p-4 flex justify-between items-center font-bold text-xs shadow-3xs'>
                         <div>⚠️ ${i.article_modele.toUpperCase()}</div>
-                        <div class='text-right text-rose-700'>Reste : ${i.quantite_restante} pcs</div>
+                        <div class='text-right text-rose-700 bg-white px-3 py-1 rounded-xl border border-rose-200 shadow-4xs'>Reste : ${i.quantite_restante} pcs</div>
                     </div>`;
                 });
-                html += "</div>";
-                el.innerHTML = html;
+                contenu.innerHTML = html;
             }
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Premium Maquette Serge - ÉTAPE 5 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 6.1 SUR 7)
 # =====================================================================
 
     html_content += """
-            // --- 📋 MACARONS TACTILES DE LA MAQUETTE 1 ---
+            // --- 📋 ENTRÉE DES EMPLOYÉS ET CRÉATION DES MACARONS TACTILES ---
             async function chargerProfilsCaissieresTactiles() {
                 const conteneur = document.getElementById('liste-boutons-caissieres');
                 try {
@@ -230,144 +244,133 @@ def page_accueil_supervision_mobile():
                     conteneur.innerHTML = "";
                     res.employes.forEach(emp => {
                         const bouton = document.createElement('button');
-                        bouton.className = "bg-[#f8fafc] border border-slate-200/80 text-slate-700 text-xxs font-extrabold px-3.5 py-2 rounded-xl shadow-xs active:bg-indigo-950 active:text-white cursor-pointer transition-all uppercase tracking-wide";
-                        bouton.innerText = emp;
+                        // Style de tes macarons : bleu clair avec petite icône utilisateur
+                        bouton.className = "bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-5 py-2 text-sm font-semibold flex items-center gap-2 capitalize cursor-pointer active:bg-blue-700 active:text-white transition-all shadow-4xs";
+                        bouton.innerHTML = `<i class="fa-solid fa-user text-blue-400"></i> ${emp}`;
                         bouton.onclick = () => chargerHistoriqueCaissiereDirect(emp);
                         conteneur.appendChild(bouton);
                     });
-                } catch(e) { conteneur.innerHTML = "<span class='text-rose-500 font-bold text-4xs'>Échec de liaison employés.</span>"; }
+                } catch(e) { conteneur.innerHTML = "<span class='text-rose-500 font-bold text-xs'>❌ Liaison employés coupée.</span>"; }
             }
 
-            // --- 📱 REPRODUCTION INTELLIGENTE ET INTERACTIVE DE TA DEUXIÈME MAQUETTE ---
+            // --- 📱 ALLUMAGE CHIRURGICAL DE TON DEUXIÈME DESIGN ---
             async function chargerHistoriqueCaissiereDirect(caissiere) {
-                const el = document.getElementById('contenu-section');
-                document.getElementById('zone-affichage').style.display = 'block';
-                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul des transactions...</p>";
+                const modal = document.getElementById('modal-facturation');
+                const contenu = document.getElementById('contenu-factures-modale');
+                
+                document.getElementById('nom-caissiere-titre').innerText = caissiere.toUpperCase();
+                modal.classList.replace('hidden', 'flex');
+                contenu.innerHTML = "<p class='text-center text-slate-400 text-xs py-4'>Ouverture du dossier comptable...</p>";
 
                 try {
                     const r = await fetch(`/ventes/caissiere/${encodeURIComponent(caissiere)}`, { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
                     
+                    document.getElementById('compteur-factures-tiroir').innerText = `Tiroir-Caisse : ${res.total_ventes_effectuees} facture(s)`;
+                    
                     if(!res.liste_ventes || res.liste_ventes.length === 0) {
-                        el.innerHTML = `
-                            <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-md">
-                                <div class="w-full bg-[#1c355e] text-white rounded-xl p-3.5 flex items-center gap-3 shadow-md mb-2">
-                                    <span class="text-xl">📋</span>
-                                    <div class="text-left font-black tracking-wider text-sm uppercase">DOSSIER FACTURES :<br><span class="text-emerald-400 font-extrabold text-base">${caissiere.toUpperCase()}</span></div>
-                                </div>
-                                <div class="bg-[#f0f4f8] border border-slate-200 text-slate-700 rounded-lg p-2.5 text-center font-bold text-xxs">
-                                    Tiroir-Caisse : 0 facture(s)
-                                </div>
-                            </div>`;
+                        contenu.innerHTML = `<div class='bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center text-slate-400 font-bold text-xs shadow-3xs'>Tiroir-Caisse vide. Aucune opération enregistrée pour ${caissiere.toUpperCase()}.</div>`;
                         return;
                     }
 
-                    // 1. Calcul du Chiffre d'Affaires de cette vendeuse actualisé en direct
-                    let cumulCA = 0.0;
-                    res.liste_ventes.forEach(v => {
-                        const mnt = parseFloat(String(v.montant_ttc).replace(/[^0-9.]/g, ''));
-                        if(!isNaN(mnt)) cumulCA += mnt;
-                    });
-
-                    // 2. Dessin du haut de ton dossier de factures de ta maquette 2
-                    let html = `
-                    <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-md space-y-4">
-                        
-                        <!-- Le bandeau bleu nuit de ta maquette 2 -->
-                        <div class="w-full bg-[#1c355e] text-white rounded-xl p-3.5 flex items-center gap-3 shadow-md">
-                            <span class="text-xl">📋</span>
-                            <div class="text-left font-black tracking-wider text-sm uppercase leading-tight">DOSSIER FACTURES :<br><span class="text-white font-extrabold text-base">${caissiere.toUpperCase()}</span></div>
-                        </div>
-                        
-                        <!-- La barre Tiroir-Caisse avec mise à jour du CA en direct -->
-                        <div class="bg-[#e4effb] border border-[#cbdff4] text-[#1c355e] rounded-lg p-2.5 text-left font-bold text-xs flex justify-between items-center shadow-3xs">
-                            <span>Tiroir-Caisse : ${res.total_ventes_effectuees} facture(s)</span>
-                            <span class="text-xs text-[#1c355e] bg-white px-2.5 py-1 rounded-full border border-blue-100 shadow-2xs font-extrabold">CA : ${cumulCA.toLocaleString()} FCFA</span>
-                        </div>
-                        
-                        <div class="space-y-4">`;
-                    
-                    // 3. Dessin des cartes de factures (Ton encadré beige avec la roue dentée)
+                    let html = "";
+                    // 3. Dessin rigoureux des cartes de factures beiges de ta maquette 2
                     res.liste_ventes.forEach(v => {
                         html += `
-                        <div class="bg-[#faf6f0] border border-[#ebdccf] rounded-2xl p-4 shadow-3xs relative text-left">
-                            <div class="absolute top-4 right-4 text-slate-400 text-base"><i class="fa-solid fa-gear opacity-60"></i></div>
-                            
-                            <h4 class="text-base font-black text-slate-800 tracking-tight">Facture #00${v.facture_no}</h4>
-                            
-                            <div class="border-t border-dashed border-slate-300/60 my-2 pt-2">
-                                <p class="text-4xs font-bold text-slate-400 uppercase tracking-wider">Détails du Client</p>
-                                <p class="text-xxs font-extrabold text-slate-700 flex items-center gap-1.5 mt-0.5"><i class="fa-solid fa-user text-slate-400/80"></i> Client : ${v.client.toUpperCase()}</p>
+                        <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden text-left">
+                            <div class="bg-slate-50 p-4 border-b border-slate-200 flex justify-between items-center">
+                                <h3 class="text-base font-bold text-slate-800">Facture #00${v.facture_no}</h3>
+                                <i class="text-slate-400 fa-solid fa-gear animate-spin-slow"></i>
                             </div>
                             
-                            <div class="border-t border-dashed border-slate-300/60 my-2 pt-2">
-                                <p class="text-4xs font-bold text-slate-400 uppercase tracking-wider">Détails de la Transaction</p>
-                                <p class="text-xxs font-extrabold text-slate-700 flex items-center gap-1.5 mt-0.5"><i class="fa-solid fa-clock-rotate-left text-slate-400/80"></i> ${v.date} à ${v.heure}</p>
-                            </div>
-                            
-                            <!-- Le montant en gros bleu centré de ta maquette -->
-                            <div class="bg-white border border-[#e2e8f0] rounded-xl p-3 my-2 text-center shadow-3xs">
-                                <span class="text-lg font-black text-[#1c355e] tracking-tight">${v.montant_ttc}</span>
-                            </div>
-                            
-                            <div class="mt-2">
-                                <p class="text-4xs font-bold text-slate-400 uppercase tracking-wider">Produit</p>
-                                <p class="text-xxs font-medium text-slate-600 mt-0.5">${v.article}</p>
+                            <div class="p-5">
+                                <div class="mb-4">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Détails du Client</div>
+                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-2"><i class="text-slate-400 fa-solid fa-user"></i> Client : ${v.client.toUpperCase()}</div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Détails de la Transaction</div>
+                                    <div class="text-sm font-semibold text-slate-600 flex items-center gap-2"><i class="text-slate-400 fa-solid fa-clock"></i> ${v.date} à ${v.heure}</div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <!-- Le montant en gros bleu/vert centré de ton dessin -->
+                                    <div class="bg-green-50 border border-dashed border-green-200 rounded-xl p-3 text-center text-xl font-black text-green-700 tracking-wide shadow-4xs">
+                                        ${v.montant_ttc}
+                                    </div>
+                                </div>
+
+                                <div class="mt-2">
+                                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Produit</div>
+                                    <div class="text-sm font-bold text-slate-800 uppercase tracking-tight">${v.article}</div>
+                                </div>
                             </div>
                         </div>`;
                     });
-                    
-                    html += "</div></div>";
-                    el.innerHTML = html;
-                } catch(e) { el.innerHTML = "<div class='bg-white rounded-3xl p-5 border border-slate-100 shadow-sm text-center text-rose-500 font-bold'>❌ Échec de chargement du dossier caissière.</div>"; }
+                    contenu.innerHTML = html;
+                } catch(e) { contenu.innerHTML = "<p class='text-rose-500 font-bold text-xs text-center py-4'>❌ Erreur de décodage du dossier.</p>"; }
             }
     """
 # =====================================================================
-# MODULE 3 : api.py (Version Spéciale Google Pixel - ÉTAPE 6 SUR 7)
+# MODULE 3 : api.py (Version Rectifiée Premium - ÉTAPE 6.2 SUR 7)
 # =====================================================================
 
     html_content += """
             async function chargerStocks() {
-                const el = document.getElementById('contenu-section');
-                document.getElementById('zone-affichage').style.display = 'block';
-                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Lecture du stock central...</p>";
+                const modal = document.getElementById('modal-facturation');
+                const contenu = document.getElementById('contenu-factures-modale');
+                
+                document.getElementById('nom-caissiere-titre').innerText = "INVENTAIRE DES STOCKS";
+                document.getElementById('compteur-factures-tiroir').innerText = "État Centralisé";
+                modal.classList.replace('hidden', 'flex');
+                contenu.innerHTML = "<p class='text-center text-slate-400 text-xs py-4'>Lecture du stock central...</p>";
+                
                 try {
                     const r = await fetch('/stocks/etat', { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
-                    let html = "<div class='bg-white rounded-3xl p-5 border border-slate-100 shadow-sm'><h3 class='text-xs font-black text-slate-800 uppercase tracking-wide mb-3'>📦 INVENTAIRE</h3><table style='width:100%; text-align:left; border-collapse:collapse;'><thead><tr style='color:#94a3b8; font-size:0.75rem; border-bottom:1px solid #e2e8f0;'><th style='padding:0.5rem 0;'>Article</th><th style='text-align:center;'>Reste</th><th style='text-align:right;'>Statut</th></tr></thead><tbody>";
+                    
+                    let html = "<div class='bg-white border border-slate-200 rounded-2xl p-4 shadow-3xs overflow-x-auto'><table class='w-full text-left text-xs border-collapse'><thead><tr class='text-slate-400 border-b border-slate-100 font-bold'><th class='pb-2'>Article</th><th class='text-center pb-2'>Reste</th><th class='text-right pb-2'>Statut</th></tr></thead><tbody>";
                     res.inventaire_magasin.forEach(i => {
-                        const color = i.quantite_restante <= i.seuil_alerte_applique ? 'color:#b91c1c; background:#fee2e2;' : 'color:#047857; background:#dcfce7;';
-                        html += `<tr style='border-bottom:1px solid #f1f5f9;'>
-                            <td style='padding:0.75rem 0; font-weight:bold; color:#334155;'>${i.article_modele}</td>
-                            <td style='text-align:center; font-weight:900;'>${i.quantite_restante} pcs</td>
-                            <td style='text-align:right;'><span style='padding:0.25rem 0.5rem; border-radius:9999px; font-size:0.65rem; font-weight:bold; ${color}'>${i.statut_commande}</span></td>
+                        const color = i.quantite_restante <= i.seuil_alerte_applique ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100';
+                        html += `<tr class='border-b border-slate-50/60'>
+                            <td class='py-3 font-bold text-slate-700 uppercase tracking-tight'>${i.article_modele}</td>
+                            <td class='text-center font-black text-slate-800'>${i.quantite_restante} pcs</td>
+                            <td class='text-right'><span class='px-2 py-0.5 rounded-full border text-[10px] font-black ${color}'>${i.statut_commande}</span></td>
                         </tr>`;
                     });
-                    html += "</tbody></table></div>"; el.innerHTML = html;
-                } catch(e) { el.innerHTML = "<p style='color:#ef4444;'>❌ Erreur réseau.</p>"; }
+                    html += "</tbody></table></div>";
+                    contenu.innerHTML = html;
+                } catch(e) { contenu.innerHTML = "<p class='text-rose-500 font-bold text-xs text-center py-4'>❌ Erreur de lecture d'inventaire.</p>"; }
             }
 
             async function chargerStatistiques() {
-                const el = document.getElementById('contenu-section');
-                document.getElementById('zone-affichage').style.display = 'block';
+                const modal = document.getElementById('modal-facturation');
+                const contenu = document.getElementById('contenu-factures-modale');
                 let cible = prompt("Tapez la date au format J/M/AAAA (ex: 12/9/2026) :");
-                if(!cible) return; // 🟢 CORRECTIF SYNTAXE : Ligne corrigée et nettoyée de tout bug
-                el.innerHTML = "<p style='text-align:center; color:#94a3b8; padding:1rem;'>Calcul...</p>";
+                if(!cible) return; // 🟢 CORRECTIF CRITIQUE : Syntaxe nettoyée et débloquée
+                
+                document.getElementById('nom-caissiere-titre').innerText = "RAPPORTS COMPTABLES";
+                document.getElementById('compteur-factures-tiroir').innerText = `Date : ${cible}`;
+                modal.classList.replace('hidden', 'flex');
+                contenu.innerHTML = "<p class='text-center text-slate-400 text-xs py-4'>Analyse des performances financières...</p>";
+                
                 try {
                     const r = await fetch(`/ventes/statistiques?temporalite=JOUR&cible=${encodeURIComponent(cible)}`, { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
-                    el.innerHTML = `
-                        <div class='bg-white rounded-3xl p-5 border border-slate-100 shadow-sm'>
-                            <div style='background:#dcfce7; border:1px solid #bbf7d0; border-radius:0.75rem; padding:1rem; text-align:center; color:#14532d;'>
-                                <p style='margin:0; font-size:0.75rem; font-weight:bold;'>Chiffre d'Affaires du ${cible}</p>
-                                <p style='margin:0.25rem 0 0 0; font-size:1.5rem; font-weight:900;'>${res.chiffre_affaires_ttc} FCFA</p>
+                    
+                    contenu.innerHTML = `
+                        <div class='space-y-4'>
+                            <div class='bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center text-emerald-900 shadow-3xs'>
+                                <p class='text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1'>Chiffre d'Affaires du ${cible}</p>
+                                <p class='text-2xl font-black tracking-wide'>${res.chiffre_affaires_ttc} FCFA</p>
                             </div>
-                            <div style='background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.75rem; padding:0.75rem; font-size:0.75rem; margin-top:1rem;'>
-                                <p>🔥 <b>Article Star :</b> ${res.article_le_plus_vendu}</p>
-                                <p style='border-top:1px solid #e2e8f0; margin-top:0.5rem; pt-2; font-style:italic;'>📈 ${res.comparatif_performance_n_1}</p>
+                            <div class='bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-medium space-y-2 shadow-4xs text-left'>
+                                <p class='text-slate-600'>🔥 <b>Article Star :</b> <span class='text-slate-800 font-black uppercase tracking-tight'>${res.article_le_plus_vendu}</span></p>
+                                <p class='text-slate-400 border-t border-slate-200/60 pt-2 font-normal italic'>📈 ${res.comparatif_performance_n_1}</p>
                             </div>
                         </div>`;
-                } catch(e) { el.innerHTML = "<p style='color:#ef4444;'>❌ Erreur de calcul.</p>"; }
+                } catch(e) { contenu.innerHTML = "<p class='text-rose-500 font-bold text-xs text-center py-4'>❌ Échec de calcul financier.</p>"; }
             }
         </script>
     </body>
