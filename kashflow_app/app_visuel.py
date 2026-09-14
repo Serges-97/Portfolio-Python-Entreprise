@@ -28,7 +28,7 @@ CLE_MASTER_SERGE = "Je suis simple"
 # =====================================================================
 # 🔑 CHARGEMENT DYNAMIQUE DE LA CONFIGURATION RÉSEAU (SANS RECOMPILER)
 # =====================================================================
-URL_API_KASHFLOW = "http://127.0.0.1:8000" # Adresse locale par défaut de secours
+URL_API_KASHFLOW = "https://portfolio-python-entreprise.onrender.com" # Adresse locale par défaut de secours
 CLE_API_KASHFLOW = "KASHFLOW_KEY_DEFAUT"
 
 def charger_configuration_externe():
@@ -40,8 +40,8 @@ def charger_configuration_externe():
     # Si le fichier n'existe pas (premier démarrage chez le client), on le crée proprement
     if not os.path.exists(fichier_config):
         with open(fichier_config, "w", encoding="utf-8") as f:
-            f.write("# CONFIGURATION RESEAU KASHFLOW MANAGER\n")
-            f.write("URL_API=http://127.0.0.1:8000\n")
+            f.write("# CONFIGURATION RESEAU KASHFLOW MANAGER \n")
+            f.write("URL_API=https://portfolio-python-entreprise.onrender.com \n")
             f.write("CLE_API=MON_CODE_SECRET_CLIENT\n")
         return
 

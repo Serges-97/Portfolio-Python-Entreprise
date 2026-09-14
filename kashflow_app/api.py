@@ -402,41 +402,38 @@ def page_accueil_supervision_mobile():
 
 @app.post("/ventes/synchroniser", dependencies=[Depends(verifier_cle_api)])
 def api_centraliser_vente(donnees: VenteSchemaReseau):
-    """Intercepte, calcule la TVA et centralise la vente du magasin."""
+    """Intercepte, calcule la TVA et centralise la vente du magasin sur le Cloud."""
     try:
         donnees.caissiere = donnees.caissiere.strip().lower()
         if donnees.prix_ht <= 0 or not 0 < donnees.quantite <= 1000:
-            raise HTTPException(
-                status_code=422, detail="Prix ou quantité invalide."
-            )
+            raise HTTPException(status_code=422, detail="Prix ou quantité invalide.")
+            
         connexion = sqlite3.connect(data_base.DB_NAME)
-        deja_sync = connexion.execute(
-            "SELECT id FROM ventes WHERE reference_locale = ?",
-            (donnees.reference_locale,),
-        ).fetchone()
+        deja_sync = connexion.execute("SELECT id FROM ventes WHERE reference_locale = ?", (donnees.reference_locale,)).fetchone()
         connexion.close()
         if deja_sync:
             return {"statut": "Déjà synchronisé", "facture_id_cloud": deja_sync[0]}
-        regime_tva = (
-            int(donnees.applique_tva)
-            if donnees.applique_tva is not None
-            else data_base.obtenir_regime_tva_employe(donnees.caissiere)
-        )
+            
+        regime_tva = int(donnees.applique_tva) if donnees.applique_tva is not None else data_base.obtenir_regime_tva_employe(donnees.caissiere)
         total_ht = donnees.prix_ht * donnees.quantite
         tva_calculee = total_ht * (19.25 / 100) if regime_tva == 1 else 0.0
         total_ttc = total_ht + tva_calculee
+        
+        # 🟢 SÉCURITÉ ALIGNEMENT : Utilisation de description_unique ou desc_unique selon ce que le PC envoie
+        description_finale = getattr(donnees, 'description_unique', getattr(donnees, 'description_unique', ""))
+        
         num_facture = data_base.enregistrer_vente_sql(
-            client=donnees.client,
-            article=donnees.article,
-            desc_unique=donnees.description_unique,
-            mnt_ht=total_ht,
-            tva=tva_calculee,
-            ttc=total_ttc,
-            caissiere=donnees.caissiere,
-            reference_locale=donnees.reference_locale,
+            client=donnees.client, 
+            article=donnees.article, 
+            desc_unique=description_finale, 
+            mnt_ht=total_ht, 
+            tva=tva_calculee, 
+            ttc=total_ttc, 
+            caissiere=donnees.caissiere, 
+            reference_locale=donnees.reference_locale
         )
         return {"statut": "Synchronisé", "facture_id_cloud": num_facture}
-    except Exception as e:
+    except Exception as e: 
         raise HTTPException(status_code=500, detail=str(e))
 
 
