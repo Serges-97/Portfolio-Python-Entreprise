@@ -44,7 +44,7 @@ def calculer_facture_dynamique(prix_unitaire_ht, quantite, applique_tva):
 # =====================================================================
 
 def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_article, desc_unique, quantite, mnt_ht, valeur_tva, total_ttc, nom_caissiere):
-    """Génère une facture PDF hautement sécurisée avec filigrane en diagonale et traçabilité caissière."""
+    """Génère une facture PDF hautement sécurisée avec filigrane en diagonale, traçabilité caissière et impression directe."""
     try:
         from datetime import datetime
         maintenant = datetime.now()
@@ -58,14 +58,11 @@ def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_artic
         # 🛡️ 1. FILIGRANE DE SÉCURITÉ EN DIAGONALE (FOND DE FACTURE)
         # =====================================================================
         pdf.set_font("Helvetica", "B", 28)
-        # RGB (245, 245, 245) : un gris très clair invisible à la photocopie
         pdf.set_text_color(245, 245, 245)
         
-        # Dessin textuel en diagonale au centre de la feuille A4
         pdf.text(x=20, y=130, txt=f"{nom_boutique.upper()} - DOCUMENT AUTHENTIQUE")
         pdf.text(x=20, y=150, txt=f"GARANTIE CONSTRUCTEUR CERTIFIEE")
         
-        # Réinitialisation immédiate de la couleur en noir pour les vrais textes
         pdf.set_text_color(0, 0, 0)
         
         # =====================================================================
@@ -75,7 +72,6 @@ def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_artic
         pdf.cell(190, 10, f"{nom_boutique.upper()}", ln=1, align="C")
         
         pdf.set_font("Helvetica", "B", 11)
-        # Numéro de facture normalisé sur 4 chiffres (ex: FACTURE N°0045)
         pdf.cell(190, 8, f"FACTURE COMMERCIALE N°{str(num_facture).zfill(4)}", ln=1, align="C")
         pdf.set_font("Helvetica", "I", 10)
         pdf.cell(190, 6, f"Émise le {date_facture} à {heure_facture}", ln=1, align="C")
@@ -99,7 +95,6 @@ def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_artic
         pdf.set_font("Helvetica", "", 12)
         pdf.cell(190, 8, f"Désignation Article : {nom_article}", ln=1)
         
-        # Insertion dynamique de la description unique selon l'appareil électronique
         pdf.set_font("Helvetica", "B", 11)
         pdf.cell(190, 8, f"Identifiant Unique / N° IMEI / Série : {desc_unique}", ln=1)
         
@@ -119,7 +114,6 @@ def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_artic
         pdf.cell(100, 8, "Taxe sur la Valeur Ajoutée (TVA) :", ln=0)
         pdf.cell(90, 8, f"{valeur_tva} FCFA", ln=1, align="R")
         
-        # Net à payer mis en valeur en gras de niveau PGI
         pdf.set_font("Helvetica", "B", 13)
         pdf.cell(100, 10, "NET A PAYER (TTC) :", ln=0)
         pdf.cell(90, 10, f"{total_ttc} FCFA", ln=1, align="R")
@@ -129,43 +123,32 @@ def generer_recu_pdf_industriel(nom_boutique, num_facture, nom_client, nom_artic
         pdf.cell(190, 5, "Le matériel est garanti contre tout vice de fabrication sur présentation de ce reçu.", ln=1, align="C")
         pdf.cell(190, 5, "Merci pour votre confiance !", ln=1, align="C")
         
-        # Sauvegarde sécurisée dans le dossier local du projet
-        nom_magasin_propre = nom_boutique.replace(' ', '_').replace('/', '_').replace('\\', '_')
-        dossier_pdf = os.path.dirname(os.path.abspath(__file__))  # Dossier kashflow_app
-        nom_fichier = os.path.join(dossier_pdf, f"recu_{nom_magasin_propre}_F{num_facture}.pdf")
-        pdf.output(nom_fichier)
-        
-        # 🟢 COLLE EXACTEMENT CE NOUVEAU BLOC À LA PLACE :
         # =====================================================================
-        # 📂 CONFIGURATION DU DOSSIER REEL SUR LE BUREAU DU CLIENT (SÉRIE C)
+        # 📂 CONFIGURATION COMPTABLE DU SOUS-DOSSIER UNIQUE (FACTURES_EMISES)
         # =====================================================================
         import sys
-        
-        # Détection du dossier d'exécution réel (PC ou .exe compilé)
         if getattr(sys, 'frozen', False):
             dossier_reel_app = os.path.dirname(sys.executable)
         else:
             dossier_reel_app = os.path.dirname(os.path.abspath(__file__))
-            
-        # Création automatique du sous-dossier s'il n'existe pas
+
+        # Création et ciblage exclusif dans le sous-dossier Factures_Emises
         dossier_factures = os.path.join(dossier_reel_app, "Factures_Emises")
         if not os.path.exists(dossier_factures):
             os.makedirs(dossier_factures)
-            
+
         nom_magasin_propre = nom_boutique.replace(' ', '_').replace('/', '_').replace('\\', '_')
         nom_fichier = os.path.join(dossier_factures, f"recu_{nom_magasin_propre}_F{num_facture}.pdf")
-        
-        # Sauvegarde du PDF dans le sous-dossier du Bureau
+    
+        # Une seule et unique sauvegarde d'usine
         pdf.output(nom_fichier)
         
         # =====================================================================
         # 🖨️ IMPRESSION AUTOMATIQUE DIRECTE (RÈGLES DE SÉRIE C)
         # =====================================================================
         try:
-            # os.startfile envoie l'ordre d'impression silencieux à l'imprimante par défaut de Windows
             os.startfile(nom_fichier, "print")
         except Exception as e:
-            # Si aucune imprimante n'est branchée, le code ne crash pas, il écrit juste un avertissement
             print(f"[INFO IMPRIMANTE] : Aucune imprimante détectée ou configurée par défaut. {e}")
             
         return True

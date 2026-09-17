@@ -12,7 +12,7 @@ from datetime import datetime
 import requests
 import data_base
 import operation
-
+import json 
 # Lancement des configurations SQLite d'usine au démarrage du logiciel
 data_base.initialisation_systeme()
 
@@ -72,7 +72,18 @@ def normaliser_nom_caissiere(valeur):
 
 def synchroniser_vente_cloud(reference_locale, donnees):
     """Envoie une vente au Cloud ou la conserve dans la file locale."""
-    data_base.mettre_en_attente_synchronisation(reference_locale, donnees)
+    # On réaligne le nom de la variable TVA pour correspondre à 100% à l'API Render
+    donnees_alignees = {
+        "reference_locale": reference_locale,
+        "client": donnees["client"],
+        "article": donnees["article"],
+        "description_unique": donnees["description_unique"],
+        "prix_ht": donnees["prix_ht"],
+        "quantite": donnees["quantite"],
+        "caissiere": donnees["caissiere"],
+        "applique_tva": donnees.get("applique_tva_vente", None) # 🟢 ALIGNEMENT DE LA VARIABLE CRITIQUE
+    }
+    data_base.mettre_en_attente_synchronisation(reference_locale, donnees_alignees)
     synchroniser_file_cloud()
 
 
@@ -83,19 +94,23 @@ def synchroniser_file_cloud():
 
     for id_synchronisation, reference_locale, donnees in data_base.recuperer_synchronisations_en_attente():
         try:
+            # On s'assure que 'donnees' est bien un dictionnaire Python
+            payload = donnees if isinstance(donnees, dict) else json.loads(donnees)
+            
             reponse = requests.post(
                 f"{URL_API_KASHFLOW}/ventes/synchroniser",
-                json=donnees,
+                json=payload,
                 headers={"X-API-Key": CLE_API_KASHFLOW},
                 timeout=8,
             )
             reponse.raise_for_status()
             data_base.marquer_synchronisation_reussie(id_synchronisation, reference_locale)
             logging.info("Vente synchronisée dans le Cloud: %s", reference_locale)
-        except requests.RequestException as erreur:
-            data_base.enregistrer_erreur_synchronisation(id_synchronisation, erreur)
+        except Exception as erreur:
+            data_base.enregistrer_erreur_synchronisation(id_synchronisation, str(erreur))
             logging.warning("Synchronisation différée: %s", erreur)
             break
+
 # =====================================================================
 # MODULE 4 : app_visuel.py (Version 5.5 Pro - PARTIE 2 SUR 5)
 # =====================================================================
