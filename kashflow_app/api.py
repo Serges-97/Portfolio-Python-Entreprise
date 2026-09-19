@@ -50,7 +50,8 @@ class VenteSchemaReseau(BaseModel):
     prix_ht: float
     quantite: int
     caissiere: str
-    applique_tva: bool | None = None
+    applique_tva_vente: int | None = None  # 🟢 ALIGNEMENT COMMERCIAL : Reçoit exactement l'entier (1 ou 0) envoyé par le PC de caisse
+
 # =====================================================================
 # MODULE 3 : api.py (Version Unifiée Pixel - ÉTAPE 3 SUR 10)
 # =====================================================================
@@ -415,7 +416,9 @@ def api_centraliser_vente(donnees: VenteSchemaReseau):
         if deja_sync:
             return {"statut": "Déjà synchronisé", "facture_id_cloud": deja_sync[0]}
             
-        regime_tva = int(donnees.applique_tva) if donnees.applique_tva is not None else data_base.obtenir_regime_tva_employe(donnees.caissiere)
+        # 🟢 LIGNE CORRIGÉE : On extrait la variable alignée "applique_tva_vente"
+        regime_tva = int(donnees.applique_tva_vente) if donnees.applique_tva_vente is not None else data_base.obtenir_regime_tva_employe(donnees.caissiere)
+
         total_ht = donnees.prix_ht * donnees.quantite
         tva_calculee = total_ht * (19.25 / 100) if regime_tva == 1 else 0.0
         total_ttc = total_ht + tva_calculee

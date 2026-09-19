@@ -555,15 +555,18 @@ def ouvrir_comptoir_facturation():
             )
 
             if num_facture:
+                # 🟢 LE CORRECTIF CHIRURGICAL : Schéma strict aligné à 100% sur Render
                 donnees_cloud = {
-                    "client": nom_client,
-                    "article": smartphone,
-                    "description_unique": desc,
-                    "prix_ht": prix,
-                    "quantite": qte,
-                    "caissiere": caissiere_nom,
-                    "applique_tva_vente": applique_tva
+                    "reference_locale": reference_locale,
+                    "client": str(nom_client).strip(),
+                    "article": str(smartphone).strip(),
+                    "description_unique": str(desc).strip(),
+                    "prix_ht": float(prix),
+                    "quantite": int(qte),
+                    "caissiere": str(caissiere_nom).strip().lower(),
+                    "applique_tva": int(applique_tva) # 🔑 Transmet 1 ou 0 proprement
                 }
+
                 threading.Thread(target=synchroniser_vente_cloud, args=(reference_locale, donnees_cloud), daemon=True).start()
 
                 succes_pdf = operation.generer_recu_pdf_industriel(
