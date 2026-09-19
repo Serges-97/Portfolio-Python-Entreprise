@@ -56,11 +56,12 @@ class VenteSchemaReseau(BaseModel):
 # =====================================================================
 
 def verifier_cle_api(x_api_key: str | None = Header(default=None)):
-    cle_attendue = os.environ.get("KASHFLOW_API_KEY", "").strip()
+    # 🟢 SÉCURITÉ CONSTRUCTEUR : Lecture propre de la variable Render sans aucun bug
+    cle_attendue = str(os.environ.get("KASHFLOW_API_KEY", "")).strip()
     if not cle_attendue:
-        return  
+        return  # Si aucune clé n'est configurée en ligne, on laisse passer pour le test
     if not x_api_key or not secrets.compare_digest(x_api_key, cle_attendue):
-        raise HTTPException(status_code=401, detail="Clé API invalide.")
+        raise HTTPException(status_code=401, detail="Clé API invalide.") 
 
 
 @app.get("/", response_class=HTMLResponse)
