@@ -32,32 +32,38 @@ URL_API_KASHFLOW = "https://portfolio-python-entreprise.onrender.com" # Adresse 
 CLE_API_KASHFLOW = "KASHFLOW_KEY_DEFAUT"
 
 def charger_configuration_externe():
-    """Lit le fichier config.txt sur le bureau pour adapter le logiciel au client."""
+    """Lit dynamiquement la configuration du client en supportant les espaces, tirets et égaux."""
     global URL_API_KASHFLOW, CLE_API_KASHFLOW
     dossier_prog = os.path.dirname(os.path.abspath(__file__))
     fichier_config = os.path.join(dossier_prog, "config.txt")
     
-    # Si le fichier n'existe pas (premier démarrage chez le client), on le crée proprement
     if not os.path.exists(fichier_config):
         with open(fichier_config, "w", encoding="utf-8") as f:
             f.write("# CONFIGURATION RESEAU KASHFLOW MANAGER \n")
-            f.write("URL_API=https://portfolio-python-entreprise.onrender.com \n")
-            f.write("CLE_API=MON_CODE_SECRET_CLIENT\n")
+            f.write("URL_API - https://portfolio-python-entreprise.onrender.com \n")
+            f.write("CLE_API - SERGE_TECH_998877\n")
+        URL_API_KASHFLOW = "https://portfolio-python-entreprise.onrender.com"
+        CLE_API_KASHFLOW = "SERGE_TECH_998877"
         return
 
-    # Si le fichier existe, on lit l'adresse IP ou le lien Render gravé dedans
     try:
         with open(fichier_config, "r", encoding="utf-8") as f:
             for ligne in f:
-                if ligne.strip().startswith("#") or "=" not in ligne:
+                ligne_propre = ligne.strip()
+                if ligne_propre.startswith("#") or not ligne_propre:
                     continue
-                cle, valeur = ligne.strip().split("=", 1)
-                if cle.strip() == "URL_API":
-                    URL_API_KASHFLOW = valeur.strip().rstrip("/")
-                elif cle.strip() == "CLE_API":
-                    CLE_API_KASHFLOW = valeur.strip()
+                
+                # Support dynamique des deux types de séparateurs pour la vente commerciale
+                separateur = "-" if "-" in ligne_propre else "="
+                if separateur in ligne_propre:
+                    cle, valeur = ligne_propre.split(separateur, 1)
+                    if cle.strip() == "URL_API":
+                        URL_API_KASHFLOW = valeur.strip().rstrip("/")
+                    elif cle.strip() == "CLE_API":
+                        CLE_API_KASHFLOW = valeur.strip()
     except Exception as e:
         print(f"[ERREUR CONFIG CONFIG.TXT] : {e}")
+
 
 # Exécution immédiate du chargeur au démarrage de la caisse
 charger_configuration_externe()

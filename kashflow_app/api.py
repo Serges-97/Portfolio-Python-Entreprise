@@ -275,14 +275,19 @@ def page_accueil_supervision_mobile():
             // --- 📱 OUVERTURE INTERACTIVE DE TON DOSSIER FACTURES (MAQUETTE 2) ---
             async function chargerHistoriqueCaissiereDirect(caissiere) {
                 const modal = document.getElementById('modal-facturation');
-                const contenu = document.getElementById('contenu-factures-modale');
+                // 🟢 RECTIFICATION : On cible le bon ID 'contents-factures-zone' de ta maquette
+                const contenu = document.getElementById('contents-factures-zone');
                 
-                document.getElementById('nom-caissiere-titre').innerText = caissiere.toUpperCase();
+                // 🟢 SÉCURITÉ MAJUSCULE/MINUSCULE : On normalise le nom envoyé pour l'affichage et la requête
+                const caissierePropre = String(caissiere).strip().lower();
+                
+                document.getElementById('nom-caissiere-titre').innerText = caissierePropre.toUpperCase();
                 modal.classList.add('flex');
                 contenu.innerHTML = "<p class='text-center text-slate-400 text-xs py-8'>Calcul des dossiers du tiroir...</p>";
 
                 try {
-                    const r = await fetch(`/ventes/caissiere/${encodeURIComponent(caissiere)}`, { headers: { 'X-API-Key': API_KEY } });
+                    // Envoi en minuscules strictes vers l'API Cloud pour éviter les conflits
+                    const r = await fetch(`/ventes/caissiere/${encodeURIComponent(caissierePropre)}`, { headers: { 'X-API-Key': API_KEY } });
                     const res = await r.json();
                     
                     let cumulCA = 0;
@@ -296,12 +301,11 @@ def page_accueil_supervision_mobile():
                     `;
                     
                     if(!res.liste_ventes || res.liste_ventes.length === 0) {
-                        contenu.innerHTML = `<div class='card-facture-beige' style='padding:20px; text-align:center; color:#94a3b8;'>Tiroir-Caisse vierge pour ${caissiere.toUpperCase()}.</div>`;
+                        contenu.innerHTML = `<div class='card-facture-beige' style='padding:20px; text-align:center; color:#94a3b8;'>Tiroir-Caisse vierge pour ${caissierePropre.toUpperCase()}.</div>`;
                         return;
                     }
 
                     let html = "";
-                    // Dessin chirurgical au format exact de ton dessin beige
                     res.liste_ventes.forEach(v => {
                         html += `
                         <div class="card-facture-beige">
@@ -325,12 +329,13 @@ def page_accueil_supervision_mobile():
                                     <div class="details-label">Produit</div>
                                     <div class="details-val" style="font-size:14px; font-weight:800; color:#1e293b; text-transform:uppercase;">${v.article}</div>
                                 </div>
-                            </div>
+                            </div>   
                         </div>`;
                     });
                     contenu.innerHTML = html;
                 } catch(e) { contenu.innerHTML = "<p style='color:red; text-align:center; padding:10px;'>❌ Panne réseau d'audit.</p>"; }
             }
+
     """
 # =====================================================================
 # MODULE 3 : api.py (Version Unifiée Pixel - ÉTAPE 7 SUR 10)
@@ -460,34 +465,40 @@ def api_obtenir_statistiques(temporalite: str, cible: str):
 # =====================================================================
 
 
-@app.get(
-    "/ventes/caissiere/{nom_caissiere}", dependencies=[Depends(verifier_cle_api)]
-)
+@app.get("/ventes/caissiere/{nom_caissiere}", dependencies=[Depends(verifier_cle_api)])
 def api_historique_caissiere(nom_caissiere: str):
     """Extrait l'audit des ventes d'une vendeuse pour l'affichage mobile du patron."""
     try:
+        nom_caissiere = nom_caissiere.strip().lower()
         ventes = data_base.recuperer_ventes_par_caissiere(nom_caissiere)
         if not ventes:
             return {"total_ventes_effectuees": 0, "liste_ventes": []}
+            
         liste_formatee = []
         for v in ventes:
-            # 🟢 DÉPAQUETAGE DES TUPLES SQLITE D'ORIGINE
-            liste_formatee.append(
-                {
-                    "facture_no": v[0],
-                    "client": v[1],
-                    "article": str(v[2]).replace("{", "").replace("}", ""),
-                    "montant_ttc": f"{v[3]:,.0f} FCFA",
-                    "date": v[4],
-                    "heure": v[5],
-                }
-            )
+            # 🟢 SÉCURITÉ COMMERCIALE : Nettoyage flexible pour éviter tout crash si le montant est du texte ou un chiffre
+            montant_brut = str(v[3]).replace("FCFA", "").replace(" ", "").strip()
+            try:
+                montant_val = float(montant_brut)
+                montant_propre = f"{montant_val:,.0f} FCFA"
+            except ValueError:
+                montant_propre = f"{v[3]} FCFA" if "FCFA" not in str(v[3]) else str(v[3])
+
+            liste_formatee.append({
+                "facture_no": v[0],
+                "client": str(v[1]).upper(),
+                "article": str(v[2]).replace("{", "").replace("}", "").upper(),
+                "montant_ttc": montant_propre,
+                "date": v[4],
+                "heure": v[5],
+            })
         return {
             "total_ventes_effectuees": len(liste_formatee),
             "liste_ventes": liste_formatee,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.get("/stocks/etat", dependencies=[Depends(verifier_cle_api)])
