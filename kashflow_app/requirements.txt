@@ -1,6 +1,6 @@
 fastapi
 uvicorn
+psycopg2-binary
 pydantic
 requests
 fpdf
-psycopg2-binary==2.9.9
