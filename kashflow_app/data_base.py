@@ -2,8 +2,9 @@
 # SYSTEME KASHFLOW - MODULE 1 : data_base.py (PARTIE 1 SUR 3)
 # =====================================================================
 import sqlite3
-import os
+import os  # 🟢 INDISPENSABLE : Supprime le crash d'allumage sur Render
 import logging
+import json  # 🟢 INDISPENSABLE : Pour le décodage de la file d'attente
 from datetime import datetime
 
 # 📁 FORCE LE CHEMIN REUSSI : Configuration des fichiers de traçabilité d'usine
