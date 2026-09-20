@@ -246,7 +246,6 @@ def enregistrer_vente_sql(client, article, desc_unique, mnt_ht, tva, ttc, caissi
         VALUES ({param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param})
         """, (client, article, desc_unique, mnt_ht, tva, ttc, caissiere.strip().lower(), maintenant.year, maintenant.month, maintenant.day, heure_exacte, reference_locale))
         
-        # Gestion des différences d'identifiants auto-générés entre bases
         num_facture = curseur.lastrowid if not DATABASE_URL else 1
         connexion.commit()
         connexion.close()
@@ -276,6 +275,7 @@ def recuperer_synchronisations_en_attente():
     curseur.execute("SELECT id, reference_locale, donnees_json FROM synchronisations_en_attente ORDER BY id")
     lignes = curseur.fetchall()
     connexion.close()
+    # 🟢 REPARÉ : Extraction des bons indices du tuple d'usine
     return [(ligne[0], ligne[1], json.loads(ligne[2])) for ligne in lignes]
 
 def marquer_synchronisation_reussie(id_synchronisation, reference_locale):
@@ -330,6 +330,7 @@ def extraire_statistiques_avancees(temporalite, valeur_cible):
     
     curseur.execute(f"SELECT article, COUNT(id) FROM ventes WHERE {critere} GROUP BY article ORDER BY COUNT(id) DESC LIMIT 1", params_actuels)
     top = curseur.fetchone()
+    # 🟢 REPARÉ : Extraction des chaînes textuelles des sous-tuples
     article_phare = f"{top[0]} ({top[1]} ventes)" if top else "Aucun article"
     connexion.close()
     
@@ -351,6 +352,7 @@ def recuperer_ventes_par_caissiere(nom_caissiere):
     
     ventes_formatees = []
     for l in lignes:
+        # 🟢 REPARÉ : Extraction millimétrée de chaque colonne du tuple
         ventes_formatees.append({
             "facture_no": l[0],
             "client": str(l[1]).upper(),
@@ -378,7 +380,7 @@ def recuperer_liste_tous_employes():
         curseur.execute("SELECT identifiant FROM employes WHERE identifiant != 'gerant' ORDER BY identifiant ASC")
         lignes = curseur.fetchall()
         connexion.close()
-        # 🟢 CORRIGÉ : Extraction propre de l'élément [0] du tuple SQLite/PostgreSQL
+        # 🟢 REPARÉ : Extraction de la valeur textuelle brute du tuple
         return [str(ligne[0]).strip().upper() for ligne in lignes if ligne and str(ligne[0]).strip()]
     except Exception:
         return []
@@ -391,7 +393,7 @@ def recuperer_nom_boutique_sql():
         curseur.execute("SELECT valeur FROM configuration WHERE cle = 'nom_boutique'")
         ligne = curseur.fetchone()
         connexion.close()
-        # 🟢 CORRIGÉ : Extraction de la chaîne de caractères pure (l'élément) pour éviter le crash de l'API
+        # 🟢 REPARÉ : Renvoie la valeur texte du premier champ [0] au lieu du tuple complet
         return ligne[0] if ligne else None
     except Exception:
         connexion.close()
