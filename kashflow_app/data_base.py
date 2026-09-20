@@ -354,7 +354,7 @@ def recuperer_ventes_par_caissiere(nom_caissiere):
         ventes_formatees.append({
             "facture_no": l[0],
             "client": str(l[1]).upper(),
-            "article": str(l[2]).upper(),
+            "article": str(l[2]).replace("{", "").replace("}", "").upper(),
             "montant_ttc": f"{float(l[3]):,.0f} FCFA",
             "date": f"{l[4]}/{l[5]}/{l[6]}",
             "heure": l[7]
@@ -378,6 +378,7 @@ def recuperer_liste_tous_employes():
         curseur.execute("SELECT identifiant FROM employes WHERE identifiant != 'gerant' ORDER BY identifiant ASC")
         lignes = curseur.fetchall()
         connexion.close()
+        # 🟢 CORRIGÉ : Extraction propre de l'élément [0] du tuple SQLite/PostgreSQL
         return [str(ligne[0]).strip().upper() for ligne in lignes if ligne and str(ligne[0]).strip()]
     except Exception:
         return []
@@ -390,7 +391,7 @@ def recuperer_nom_boutique_sql():
         curseur.execute("SELECT valeur FROM configuration WHERE cle = 'nom_boutique'")
         ligne = curseur.fetchone()
         connexion.close()
-        # 🟢 CORRIGÉ : On extrait le premier élément [0] pour éviter les parenthèses
+        # 🟢 CORRIGÉ : Extraction de la chaîne de caractères pure (l'élément) pour éviter le crash de l'API
         return ligne[0] if ligne else None
     except Exception:
         connexion.close()
@@ -404,10 +405,6 @@ def enregistrer_nom_boutique_sql(nom_magasin):
     
     req = "INSERT INTO configuration (cle, valeur) VALUES ('nom_boutique', {0}) ON CONFLICT(cle) DO UPDATE SET valeur = EXCLUDED.valeur;".format(param) if DATABASE_URL else "INSERT OR REPLACE INTO configuration (cle, valeur) VALUES ('nom_boutique', ?)"
     
-    curseur.execute(req, (nom_magasin,))
-    connexion.commit()
-    connexion.close()
-
     curseur.execute(req, (nom_magasin,))
     connexion.commit()
     connexion.close()
