@@ -21,13 +21,13 @@ def obtenir_connexion_universelle():
     C'est la structure idéale pour commercialiser ton application.
     """
     if DATABASE_URL:
-        try:
-            import psycopg2
-            return psycopg2.connect(DATABASE_URL)
-        except ImportError:
-            raise Exception("Le module psycopg2-binary est manquant sur l'environnement d'exécution.")
+        # Sur le Cloud Render, on charge psycopg2 de manière flexible
+        import psycopg2
+        return psycopg2.connect(DATABASE_URL)
     else:
+        # Sur l'ordinateur du magasin, on reste sur l'infrastructure locale SQLite3
         return sqlite3.connect(DB_NAME)
+
 
 # Configuration des fichiers de traçabilité et log de débogage
 logging.basicConfig(
