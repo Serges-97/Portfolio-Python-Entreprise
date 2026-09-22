@@ -92,9 +92,9 @@ def initialisation_systeme():
     # Produits électroniques injectés à l'allumage d'usine
     produits_usine = [
         ("iPhone 15 Pro", 20, 0),
-        ("Écran Plasma LG 4K", 15, 0),
-        ("Frigo Innova Split", 8, 0),
-        ("Ordinateur Laptop HP", 12, 0)
+        ("ecran plasma LG 4K", 15, 0),
+        ("frigo innova split", 8, 0),
+        ("ordinateur laptop HP", 12, 0)
     ]
     for p in produits_usine:
         curseur.execute("INSERT OR IGNORE INTO stocks (modele, quantite_dispo, ventes_cumulees) VALUES (?, ?, ?)", p)
@@ -337,25 +337,28 @@ def enregistrer_nom_boutique_sql(nom_magasin):
 # =====================================================================
 
 def obtenir_tous_les_stocks_locaux():
-    """Renvoie l'ensemble de la table des stocks pour rafraîchir l'interface des employés."""
+    """Renvoie l'ensemble de la table des stocks avec l'ID pour le ciblage chirurgical multi-caisses."""
     connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    curseur.execute("SELECT modele, quantite_dispo, ventes_cumulees FROM stocks ORDER BY modele ASC")
+    # 🟢 CONSTRUCTEUR : On extrait l'ID en premier pour permettre la suppression et l'ajout sans doublons
+    curseur.execute("SELECT id, modele, quantite_dispo, ventes_cumulees FROM stocks ORDER BY id ASC")
     lignes = curseur.fetchall()
     connexion.close()
     return lignes
 
 def forcer_mise_a_jour_stock_local(modele_article, nouvelle_quantite):
-    """Écrase la quantité locale par celle envoyée par le Cloud (Approvisionnement Gérant)."""
+    """Écrase la quantité locale en forçant le nom en minuscules pour éviter les doublons de casse."""
     try:
         connexion = sqlite3.connect(DB_NAME)
         curseur = connexion.cursor()
-        # Si le produit n'existe pas encore (nouvel ajout du gérant), on l'insère, sinon on le met à jour
+        # 🟢 CONSTRUCTEUR : .strip().lower() sur le modèle empêche la création de doublons
+        nom_normalise = str(modele_article).strip().lower()
+        
         curseur.execute("""
         INSERT INTO stocks (modele, quantite_dispo, ventes_cumulees)
         VALUES (?, ?, 0)
         ON CONFLICT(modele) DO UPDATE SET quantite_dispo = ?
-        """, (modele_article.strip(), int(nouvelle_quantite), int(nouvelle_quantite)))
+        """, (nom_normalise, int(nouvelle_quantite), int(nouvelle_quantite)))
         connexion.commit()
         connexion.close()
         return True

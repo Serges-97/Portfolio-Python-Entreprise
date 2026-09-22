@@ -119,13 +119,23 @@ def api_centraliser_vente(donnees: VenteSchemaReseau):
 @app.post("/stocks/mettre_a_jour", dependencies=[Depends(verifier_cle_api)])
 def api_mettre_a_jour_stock_central(stock: StockSchemaReseau):
     """
-    📥 RÉCEPTEUR INTERCONNEXION MULTI-POSTES :
-    Enregistre instantanément l'approvisionnement du gérant sur la base centrale du Cloud.
+    📥 RÉCEPTEUR MULTI-POSTES :
+    Enregistre l'approvisionnement ou l'effacement (quantité à 0) sur le Cloud PostgreSQL.
     """
     try:
-        modele_propre = stock.modele.strip()
+        modele_propre = stock.modele.strip().lower()
+        
+        # 🟢 CONSTRUCTEUR : Si la quantité envoyée est 0, c'est que le gérant a supprimé l'article !
+        if stock.quantite_dispo <= 0:
+            connexion = sqlite3.connect(data_base.DB_NAME)
+            connexion.execute("DELETE FROM stocks WHERE lower(modele) = ?", (modele_propre,))
+            connexion.commit()
+            connexion.close()
+            return {"statut": "Succès", "message": f"Article '{modele_propre}' supprimé du Cloud."}
+            
+        # Sinon, on applique la mise à jour classique de l'approvisionnement
         data_base.forcer_mise_a_jour_stock_local(modele_propre, stock.quantite_dispo)
-        return {"statut": "Succès", "message": f"Stock de '{modele_propre}' mis à jour sur le Cloud central."}
+        return {"statut": "Succès", "message": f"Stock de '{modele_propre}' synchronisé."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

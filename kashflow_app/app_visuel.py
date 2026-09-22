@@ -108,176 +108,174 @@ def synchroniser_file_cloud():
 # 📦 PANNEAU GESTION DE L'INVENTAIRE / STOCKS (EXCLUSIVITÉ GÉRANT)
 # =====================================================================
 def ouvrir_panneau_stock():
-    """Permet au gérant d'ajouter de nouveaux modèles et de pousser le stock dispo sur le Cloud."""
+    """Interface d'inventaire adaptative filtrée par ID unique pour éliminer les suppressions groupées et doublons."""
     if SESSION_UTILISATEUR != "gerant":
         messagebox.showerror("Accès Interdit", "Seul le gérant peut modifier l'inventaire.")
         return
 
     def pousser_stock_vers_cloud(modele, quantite):
-        """Envoie l'approvisionnement ou le nouvel article vers l'API Cloud pour interconnexion."""
         if not URL_API_KASHFLOW or not CLE_API_KASHFLOW:
             return
         try:
-            payload = {
-                "modele": str(modele).strip(),
-                "quantite_dispo": int(quantite)
-            }
-            # Envoi asynchrone pour ne pas figer la fenêtre du gérant
+            payload = {"modele": str(modele).strip().lower(), "quantite_dispo": int(quantite)}
             def requete():
-                try:
-                    reponse = requests.post(
-                        f"{URL_API_KASHFLOW}/stocks/mettre_a_jour",
-                        json=payload,
-                        headers={"X-API-Key": CLE_API_KASHFLOW},
-                        timeout=6
-                    )
-                    if reponse.status_code == 200:
-                        logging.info("Stock synchronisé sur le Cloud avec succès : %s", modele)
-                except Exception as e:
-                    logging.warning("Échec envoi stock Cloud (Sera synchronisé plus tard) : %s", e)
-            
+                try: requests.post(f"{URL_API_KASHFLOW}/stocks/mettre_a_jour", json=payload, headers={"X-API-Key": CLE_API_KASHFLOW}, timeout=6)
+                except Exception: pass
             threading.Thread(target=requete, daemon=True).start()
-        except Exception:
-            pass
+        except Exception: pass
 
-    def action_ajouter_quantite(modele):
-        """Ajoute une livraison à un article et synchronise le réseau."""
-        qte = simpledialog.askinteger(
-            "Réapprovisionnement",
-            f"Quantité à ajouter pour « {modele} » :",
-            parent=admin_stock,
-            minvalue=1,
-        )
-        if qte is None:
-            return
+    def action_ajouter_quantite(id_stock_cible, nom_article_cible):
+        """Ajoute du stock de manière chirurgicale sur l'ID de la ligne sélectionnée."""
+        qte = simpledialog.askinteger("Réapprovisionnement", f"Quantité à ajouter pour « {str(nom_article_cible).upper()} » :", parent=admin_stock, minvalue=1)
+        if qte is None: return
 
         connexion = sqlite3.connect(data_base.DB_NAME)
-        connexion.execute(
-            "UPDATE stocks SET quantite_dispo = quantite_dispo + ? WHERE modele = ?",
-            (qte, modele),
-        )
-        # Récupération de la nouvelle quantité totale pour l'aligner en ligne
-        qte_totale = connexion.execute("SELECT quantite_dispo FROM stocks WHERE modele = ?", (modele,)).fetchone()[0]
+        # 🟢 CIBLAGE PAR ID : Plus aucun risque de toucher aux autres lignes de même nom
+        connexion.execute("UPDATE stocks SET quantite_dispo = quantite_dispo + ? WHERE id = ?", (qte, id_stock_cible))
+        qte_totale = connexion.execute("SELECT quantite_dispo FROM stocks WHERE id = ?", (id_stock_cible,)).fetchone()[0]
         connexion.commit()
         connexion.close()
         
-        # PROPULSION INTERCONNEXION IMMEDIATE
-        pousser_stock_vers_cloud(modele, qte_totale)
-        
+        pousser_stock_vers_cloud(nom_article_cible.strip().lower(), qte_totale)
         rafraichir_tableau()
-        messagebox.showinfo("Inventaire mis à jour", f"{qte} unité(s) ajoutée(s) à « {modele} ».")
+        messagebox.showinfo("Inventaire mis à jour", f"Stock augmenté avec succès.")
 
     def rafraichir_tableau():
-        """Rafraîchit l'affichage du tableau des stocks."""
-        for widget in cadre_produits.winfo_children():
-            widget.destroy()
+        """Recharge les stocks et remplit le tableau défilant."""
+        for i in tableau_stocks.get_children():
+            tableau_stocks.delete(i)
         
-        # Lecture des données locales mises à jour
         lignes = data_base.obtenir_tous_les_stocks_locaux()
-
-        for modele, quantite, _ in lignes:
-            ligne = tk.Frame(cadre_produits, bg="white", bd=1, relief=tk.SOLID)
-            ligne.pack(fill=tk.X, pady=2)
-            tk.Label(ligne, text=str(modele), bg="white", anchor=tk.W, width=32).pack(side=tk.LEFT, padx=8, pady=6)
-            tk.Label(ligne, text=f"{quantite} pcs", bg="white", width=12).pack(side=tk.LEFT, padx=4)
-            tk.Button(
-                ligne,
-                text="➕ Ajouter quantité",
-                bg="#0f766e",
-                fg="white",
-                font=("Helvetica", 8, "bold"),
-                command=lambda article=modele: action_ajouter_quantite(article),
-            ).pack(side=tk.RIGHT, padx=8, pady=3)
+        for id_db, modele, quantite, _ in lignes:
+            # On stocke l'ID en cache invisible dans le tableau pour les actions
+            tableau_stocks.insert("", tk.END, iid=str(id_db), values=(str(modele).strip().upper(), f"{quantite} pcs"))
 
     def action_ajouter_modele():
-        modele = entree_modele.get().strip()
-        qte_texte = entree_qte_stock.get().strip()
+            """Crée un nouvel article ou fusionne la quantité si le nom existe déjà."""
+    modele = entree_modele.get().strip().lower()
+    qte_texte = entree_qte_stock.get().strip()
         
-        if not modele or not qte_texte:
+    if not modele or not qte_texte:
             messagebox.showwarning("Champs vides", "Veuillez remplir le modèle et la quantité.")
             return
             
-        try:
+    try:
             qte = int(qte_texte)
             if qte <= 0: raise ValueError
             
             connexion = sqlite3.connect(data_base.DB_NAME)
             curseur = connexion.cursor()
+            
+            # Utilisation d'une transaction propre avec gestion du conflit de nom
             curseur.execute("""
             INSERT INTO stocks (modele, quantite_dispo) VALUES (?, ?)
             ON CONFLICT(modele) DO UPDATE SET quantite_dispo = quantite_dispo + ?
             """, (modele, qte, qte))
-            qte_totale = curseur.execute("SELECT quantite_dispo FROM stocks WHERE modele = ?", (modele,)).fetchone()[0]
+            
+            # 🟢 FIX AJOUT : On récupère la quantité totale cumulée pour le Cloud
+            curseur.execute("SELECT quantite_dispo FROM stocks WHERE lower(modele) = ?", (modele,))
+            qte_totale = curseur.fetchone()[0]
             connexion.commit()
             connexion.close()
             
-            # PROPULSION INTERCONNEXION IMMEDIATE
+            # Envoi direct vers le serveur Render
             pousser_stock_vers_cloud(modele, qte_totale)
             
-            messagebox.showinfo("Inventaire Mis à jour", f"Stock de '{modele}' augmenté de +{qte} unités !")
+            messagebox.showinfo("Inventaire Mis à jour", f"L'article '{modele.upper()}' a été enregistré !")
             entree_modele.delete(0, tk.END)
             entree_qte_stock.delete(0, tk.END)
-            
             rafraichir_tableau()
             entree_modele.focus()
-            
-        except ValueError:
-            messagebox.showerror("Erreur de type", "La quantité doit être un nombre entier supérieur à 0.")
+    except ValueError:
+            messagebox.showerror("Erreur", "La quantité doit être un entier supérieur à 0.")
+
 
     def action_supprimer_modele():
-        modele = entree_modele.get().strip()
-        if not modele:
-            messagebox.showwarning("Article manquant", "Saisissez le nom de l'article à supprimer.")
+        selection = tableau_stocks.selection()
+        if not selection:
+            messagebox.showwarning("Sélection manquante", "Sélectionnez une ligne dans le tableau à supprimer.")
             return
+            
+        # Récupération de l'ID unique de la ligne cliquée
+        id_unique_ligne = selection[0]
+        item = tableau_stocks.item(id_unique_ligne)
+        nom_article = item["values"][0]
 
-        confirmation = messagebox.askyesno(
-            "Confirmer la suppression",
-            f"Voulez-vous vraiment retirer « {modele} » de l'inventaire ?\n\n"
-            "L'article ne sera plus proposé lors des ventes.",
-            parent=admin_stock,
-        )
-        if not confirmation:
+        if not messagebox.askyesno("Confirmation", f"Voulez-vous retirer uniquement cette ligne « {nom_article} » de l'inventaire ?"): 
             return
 
         connexion = sqlite3.connect(data_base.DB_NAME)
         curseur = connexion.cursor()
-        curseur.execute("DELETE FROM stocks WHERE modele = ?", (modele,))
+        # 🟢 CORRECTION CHIRURGICALE : On supprime uniquement l'ID cliqué, les doublons restent intacts !
+        curseur.execute("DELETE FROM stocks WHERE id = ?", (id_unique_ligne,))
         article_supprime = curseur.rowcount > 0
         connexion.commit()
         connexion.close()
 
         if article_supprime:
-            # Envoi d'une mise à jour réseau à 0 pour désactiver l'article chez les employés
-            pousser_stock_vers_cloud(modele, 0)
-            messagebox.showinfo("Article supprimé", f"« {modele} » a été retiré de l'inventaire.", parent=admin_stock)
-            entree_modele.delete(0, tk.END)
-            entree_qte_stock.delete(0, tk.END)
+            pousser_stock_vers_cloud(nom_article.lower(), 0)
+            messagebox.showinfo("Succès", "Ligne d'article retirée avec succès.")
             rafraichir_tableau()
-            entree_modele.focus()
         else:
-            messagebox.showwarning("Article introuvable", f"Aucun article nommé « {modele} » n'a été trouvé.", parent=admin_stock)
+            messagebox.showwarning("Erreur", "Ligne introuvable.")
+
+    def action_clic_bouton_quantite():
+        selection = tableau_stocks.selection()
+        if not selection:
+            messagebox.showwarning("Sélection manquante", "Veuillez cliquer sur une ligne du tableau d'abord.")
+            return
+        id_cible = selection[0]
+        nom_article = tableau_stocks.item(id_cible)["values"][0]
+        action_ajouter_quantite(id_cible, nom_article)
 
     admin_stock = Toplevel(FENETRE_PRINCIPALE_LOGIN)
-    admin_stock.title("📦 Gestion des Stocks - Panel Gérant")
-    admin_stock.geometry("500x480")
+    admin_stock.title("📦 Gestion des Stocks - Sécurisée par ID")
+    admin_stock.geometry("520x540")
     admin_stock.configure(bg="#f8fafc")
+    admin_stock.resizable(False, False)
     admin_stock.grab_set()
 
     tk.Label(admin_stock, text="INVENTAIRE DES PRODUITS EN STOCK", font=("Helvetica", 11, "bold"), bg="#0f766e", fg="white", pady=8).pack(fill=tk.X)
 
-    cadre_tableau = tk.Frame(admin_stock, bg="#f8fafc")
-    cadre_tableau.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+    cadre_conteneur = tk.Frame(admin_stock, bg="#f8fafc")
+    cadre_conteneur.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
 
-    cadre_entetes = tk.Frame(cadre_tableau, bg="#e2e8f0")
-    cadre_entetes.pack(fill=tk.X)
-    tk.Label(cadre_entetes, text="ARTICLE", bg="#e2e8f0", font=("Helvetica", 9, "bold"), width=32, anchor=tk.W).pack(side=tk.LEFT, padx=8, pady=5)
-    tk.Label(cadre_entetes, text="QUANTITÉ", bg="#e2e8f0", font=("Helvetica", 9, "bold"), width=12).pack(side=tk.LEFT, padx=4, pady=5)
-    tk.Label(cadre_entetes, text="ACTION", bg="#e2e8f0", font=("Helvetica", 9, "bold")).pack(side=tk.RIGHT, padx=45, pady=5)
+    tableau_stocks = ttk.Treeview(cadre_conteneur, columns=("Article", "Quantite"), show="headings", height=10)
+    tableau_stocks.heading("Article", text="DÉSIGNATION DE L'ARTICLE")
+    tableau_stocks.heading("Quantite", text="STOCK DISPONIBLE")
+    tableau_stocks.column("Article", width=330, anchor=tk.W)
+    tableau_stocks.column("Quantite", width=130, anchor=tk.CENTER)
 
-    cadre_produits = tk.Frame(cadre_tableau, bg="#f8fafc")
-    cadre_produits.pack(fill=tk.BOTH, expand=True)
+    defilement = ttk.Scrollbar(cadre_conteneur, orient="vertical", command=tableau_stocks.yview)
+    tableau_stocks.configure(yscrollcommand=defilement.set)
+    
+    tableau_stocks.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    defilement.pack(side=tk.RIGHT, fill=tk.Y)
+
+    tk.Button(admin_stock, text="➕ AJOUTER QUANTITÉ AU PRODUIT SÉLECTIONNÉ", font=("Helvetica", 9, "bold"), bg="#0f766e", fg="white", command=action_clic_bouton_quantite).pack(fill=tk.X, padx=15, pady=2)
+
+    cadre_ajout = tk.LabelFrame(admin_stock, text="Créer ou Approvisionner un Article", font=("Helvetica", 9, "bold"), bg="#f8fafc", padx=10, pady=6)
+    cadre_ajout.pack(fill=tk.X, padx=15, pady=10)
+
+    tk.Label(cadre_ajout, text="Nom de l'article :", bg="#f8fafc").pack(anchor=tk.W)
+    entree_modele = tk.Entry(cadre_ajout, font=("Helvetica", 10))
+    entree_modele.pack(fill=tk.X, pady=2)
+
+    tk.Label(cadre_ajout, text="Quantité reçue :", bg="#f8fafc").pack(anchor=tk.W)
+    entree_qte_stock = tk.Entry(cadre_ajout, font=("Helvetica", 10))
+    entree_qte_stock.pack(fill=tk.X, pady=2)
+
+    entree_modele.bind("<Return>", lambda event: entree_qte_stock.focus())
+    entree_qte_stock.bind("<Return>", lambda event: action_ajouter_modele())
+
+    cadre_actions = tk.Frame(cadre_ajout, bg="#f8fafc")
+    cadre_actions.pack(fill=tk.X, pady=6)
+    tk.Button(cadre_actions, text="📥 ENREGISTRER / FUSIONNER", bg="#10b981", fg="white", font=("Helvetica", 9, "bold"), command=action_ajouter_modele).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+    tk.Button(cadre_actions, text="🗑 SUPPRIMER LIGNE SÉLECTIONNÉE", bg="#dc2626", fg="white", font=("Helvetica", 9, "bold"), command=action_supprimer_modele).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
 
     rafraichir_tableau()
+
+
 
     cadre_ajout = tk.LabelFrame(admin_stock, text="Approvisionner / Ajouter un Nouvel Article", font=("Helvetica", 9, "bold"), bg="#f8fafc", padx=10, pady=10)
     cadre_ajout.pack(fill=tk.X, padx=15, pady=15)
