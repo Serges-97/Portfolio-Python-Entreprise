@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 4 : app_visuel.py (Version 5.5 Pro - PARTIE 1 SUR 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 1 SUR 5)
 # =====================================================================
 import tkinter as tk
 from tkinter import messagebox, simpledialog, Toplevel, ttk
@@ -13,6 +13,7 @@ import requests
 import data_base
 import operation
 import json 
+
 # Lancement des configurations SQLite d'usine au démarrage du logiciel
 data_base.initialisation_systeme()
 
@@ -21,14 +22,8 @@ SESSION_UTILISATEUR = "caissier"
 NOM_CAISSIERE_ACTIVE = "Anonyme"
 NOM_BOUTIQUE_FIXE = "KASHFLOW_MANAGER"
 CLE_MASTER_SERGE = "Je suis simple"
-# FENETRE_PRINCIPALE_LOGIN = None  # Référence à la fenêtre de login principale
-# URL_API_KASHFLOW = os.environ.get("KASHFLOW_API_URL", "").strip().rstrip("/")
-# CLE_API_KASHFLOW = os.environ.get("KASHFLOW_API_KEY", "").strip()
 
-# =====================================================================
-# 🔑 CHARGEMENT DYNAMIQUE DE LA CONFIGURATION RÉSEAU (SANS RECOMPILER)
-# =====================================================================
-URL_API_KASHFLOW = "https://portfolio-python-entreprise.onrender.com" # Adresse locale par défaut de secours
+URL_API_KASHFLOW = "https://onrender.com" 
 CLE_API_KASHFLOW = "KASHFLOW_KEY_DEFAUT"
 
 def charger_configuration_externe():
@@ -40,10 +35,8 @@ def charger_configuration_externe():
     if not os.path.exists(fichier_config):
         with open(fichier_config, "w", encoding="utf-8") as f:
             f.write("# CONFIGURATION RESEAU KASHFLOW MANAGER \n")
-            f.write("URL_API - https://portfolio-python-entreprise.onrender.com \n")
-            f.write("CLE_API - SERGE_TECH_998877\n")
-        URL_API_KASHFLOW = "https://portfolio-python-entreprise.onrender.com"
-        CLE_API_KASHFLOW = "SERGE_TECH_998877"
+            f.write("URL_API - https://onrender.com \n")
+            f.write("CLE_API - MON_CODE_SECRET_CLIENT\n")
         return
 
     try:
@@ -52,8 +45,6 @@ def charger_configuration_externe():
                 ligne_propre = ligne.strip()
                 if ligne_propre.startswith("#") or not ligne_propre:
                     continue
-                
-                # Support dynamique des deux types de séparateurs pour la vente commerciale
                 separateur = "-" if "-" in ligne_propre else "="
                 if separateur in ligne_propre:
                     cle, valeur = ligne_propre.split(separateur, 1)
@@ -64,10 +55,8 @@ def charger_configuration_externe():
     except Exception as e:
         print(f"[ERREUR CONFIG CONFIG.TXT] : {e}")
 
-
 # Exécution immédiate du chargeur au démarrage de la caisse
 charger_configuration_externe()
-
 
 def normaliser_nom_caissiere(valeur):
     """Normalise un identifiant de caissière pour éviter les erreurs de typage ou d'espaces."""
@@ -75,10 +64,8 @@ def normaliser_nom_caissiere(valeur):
         return "anonyme"
     return str(valeur).strip().lower()
 
-
 def synchroniser_vente_cloud(reference_locale, donnees):
     """Envoie une vente au Cloud ou la conserve dans la file locale."""
-    # On réaligne le nom de la variable TVA pour correspondre à 100% à l'API Render
     donnees_alignees = {
         "reference_locale": reference_locale,
         "client": donnees["client"],
@@ -87,11 +74,10 @@ def synchroniser_vente_cloud(reference_locale, donnees):
         "prix_ht": donnees["prix_ht"],
         "quantite": donnees["quantite"],
         "caissiere": donnees["caissiere"],
-        "applique_tva": donnees.get("applique_tva_vente", None) # 🟢 ALIGNEMENT DE LA VARIABLE CRITIQUE
+        "applique_tva_vente": donnees.get("applique_tva", 1)
     }
     data_base.mettre_en_attente_synchronisation(reference_locale, donnees_alignees)
     synchroniser_file_cloud()
-
 
 def synchroniser_file_cloud():
     """Réessaie les ventes en attente sans bloquer l'interface Tkinter."""
@@ -100,9 +86,7 @@ def synchroniser_file_cloud():
 
     for id_synchronisation, reference_locale, donnees in data_base.recuperer_synchronisations_en_attente():
         try:
-            # On s'assure que 'donnees' est bien un dictionnaire Python
             payload = donnees if isinstance(donnees, dict) else json.loads(donnees)
-            
             reponse = requests.post(
                 f"{URL_API_KASHFLOW}/ventes/synchroniser",
                 json=payload,
@@ -116,22 +100,48 @@ def synchroniser_file_cloud():
             data_base.enregistrer_erreur_synchronisation(id_synchronisation, str(erreur))
             logging.warning("Synchronisation différée: %s", erreur)
             break
-
 # =====================================================================
-# MODULE 4 : app_visuel.py (Version 5.5 Pro - PARTIE 2 SUR 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 2 SUR 5)
 # =====================================================================
 
 # =====================================================================
 # 📦 PANNEAU GESTION DE L'INVENTAIRE / STOCKS (EXCLUSIVITÉ GÉRANT)
 # =====================================================================
 def ouvrir_panneau_stock():
-    """Permet au gérant d'ajouter de nouveaux modèles et de suivre le stock dispo."""
+    """Permet au gérant d'ajouter de nouveaux modèles et de pousser le stock dispo sur le Cloud."""
     if SESSION_UTILISATEUR != "gerant":
         messagebox.showerror("Accès Interdit", "Seul le gérant peut modifier l'inventaire.")
         return
 
+    def pousser_stock_vers_cloud(modele, quantite):
+        """Envoie l'approvisionnement ou le nouvel article vers l'API Cloud pour interconnexion."""
+        if not URL_API_KASHFLOW or not CLE_API_KASHFLOW:
+            return
+        try:
+            payload = {
+                "modele": str(modele).strip(),
+                "quantite_dispo": int(quantite)
+            }
+            # Envoi asynchrone pour ne pas figer la fenêtre du gérant
+            def requete():
+                try:
+                    reponse = requests.post(
+                        f"{URL_API_KASHFLOW}/stocks/mettre_a_jour",
+                        json=payload,
+                        headers={"X-API-Key": CLE_API_KASHFLOW},
+                        timeout=6
+                    )
+                    if reponse.status_code == 200:
+                        logging.info("Stock synchronisé sur le Cloud avec succès : %s", modele)
+                except Exception as e:
+                    logging.warning("Échec envoi stock Cloud (Sera synchronisé plus tard) : %s", e)
+            
+            threading.Thread(target=requete, daemon=True).start()
+        except Exception:
+            pass
+
     def action_ajouter_quantite(modele):
-        """Ajoute une livraison à un article déjà présent dans l'inventaire."""
+        """Ajoute une livraison à un article et synchronise le réseau."""
         qte = simpledialog.askinteger(
             "Réapprovisionnement",
             f"Quantité à ajouter pour « {modele} » :",
@@ -146,8 +156,14 @@ def ouvrir_panneau_stock():
             "UPDATE stocks SET quantite_dispo = quantite_dispo + ? WHERE modele = ?",
             (qte, modele),
         )
+        # Récupération de la nouvelle quantité totale pour l'aligner en ligne
+        qte_totale = connexion.execute("SELECT quantite_dispo FROM stocks WHERE modele = ?", (modele,)).fetchone()[0]
         connexion.commit()
         connexion.close()
+        
+        # PROPULSION INTERCONNEXION IMMEDIATE
+        pousser_stock_vers_cloud(modele, qte_totale)
+        
         rafraichir_tableau()
         messagebox.showinfo("Inventaire mis à jour", f"{qte} unité(s) ajoutée(s) à « {modele} ».")
 
@@ -155,13 +171,11 @@ def ouvrir_panneau_stock():
         """Rafraîchit l'affichage du tableau des stocks."""
         for widget in cadre_produits.winfo_children():
             widget.destroy()
-        connexion = sqlite3.connect(data_base.DB_NAME)
-        curseur = connexion.cursor()
-        curseur.execute("SELECT modele, quantite_dispo FROM stocks")
-        lignes = curseur.fetchall()
-        connexion.close()
+        
+        # Lecture des données locales mises à jour
+        lignes = data_base.obtenir_tous_les_stocks_locaux()
 
-        for modele, quantite in lignes:
+        for modele, quantite, _ in lignes:
             ligne = tk.Frame(cadre_produits, bg="white", bd=1, relief=tk.SOLID)
             ligne.pack(fill=tk.X, pady=2)
             tk.Label(ligne, text=str(modele), bg="white", anchor=tk.W, width=32).pack(side=tk.LEFT, padx=8, pady=6)
@@ -193,8 +207,12 @@ def ouvrir_panneau_stock():
             INSERT INTO stocks (modele, quantite_dispo) VALUES (?, ?)
             ON CONFLICT(modele) DO UPDATE SET quantite_dispo = quantite_dispo + ?
             """, (modele, qte, qte))
+            qte_totale = curseur.execute("SELECT quantite_dispo FROM stocks WHERE modele = ?", (modele,)).fetchone()[0]
             connexion.commit()
             connexion.close()
+            
+            # PROPULSION INTERCONNEXION IMMEDIATE
+            pousser_stock_vers_cloud(modele, qte_totale)
             
             messagebox.showinfo("Inventaire Mis à jour", f"Stock de '{modele}' augmenté de +{qte} unités !")
             entree_modele.delete(0, tk.END)
@@ -215,7 +233,7 @@ def ouvrir_panneau_stock():
         confirmation = messagebox.askyesno(
             "Confirmer la suppression",
             f"Voulez-vous vraiment retirer « {modele} » de l'inventaire ?\n\n"
-            "L'article ne sera plus proposé lors des ventes. Les ventes historiques seront conservées.",
+            "L'article ne sera plus proposé lors des ventes.",
             parent=admin_stock,
         )
         if not confirmation:
@@ -229,6 +247,8 @@ def ouvrir_panneau_stock():
         connexion.close()
 
         if article_supprime:
+            # Envoi d'une mise à jour réseau à 0 pour désactiver l'article chez les employés
+            pousser_stock_vers_cloud(modele, 0)
             messagebox.showinfo("Article supprimé", f"« {modele} » a été retiré de l'inventaire.", parent=admin_stock)
             entree_modele.delete(0, tk.END)
             entree_qte_stock.delete(0, tk.END)
@@ -270,7 +290,6 @@ def ouvrir_panneau_stock():
     entree_qte_stock = tk.Entry(cadre_ajout, font=("Helvetica", 10))
     entree_qte_stock.pack(fill=tk.X, pady=4)
 
-    # 🚀 NAVIGATION CLAVIER DEMANDÉE : Entrée passe au champ suivant, puis valide
     entree_modele.bind("<Return>", lambda event: entree_qte_stock.focus())
     entree_qte_stock.bind("<Return>", lambda event: action_ajouter_modele())
 
@@ -293,7 +312,7 @@ def ouvrir_panneau_stock():
         command=action_supprimer_modele,
     ).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
 # =====================================================================
-# MODULE 4 : app_visuel.py (Version 5.5 Pro - PARTIE 3 SUR 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 3 SUR 5)
 # =====================================================================
 
 # --- 3. PANNEAU D'AUDIT COMPTABLE TEMPOREL ET FILTRAGE VISIBLE ---
@@ -308,7 +327,7 @@ def ouvrir_panneau_historique():
         cible = entree_cible.get().strip()
         
         if not cible:
-            messagebox.showwarning("Critère manquant", "Veuillez entrer une valeur cible (ex: 31-08, 08, 2026).")
+            messagebox.showwarning("Critère manquant", "Veuillez entrer une valeur cible (ex: 31/08/2026, 08, 2026).")
             return
             
         statistiques = data_base.extraire_statistiques_avancees(tempo, cible)
@@ -330,17 +349,30 @@ def ouvrir_panneau_historique():
             messagebox.showinfo("Rapport", f"Aucune vente pour : {nom_vendeuse}")
             return
             
+        # 🟢 CORRIGÉ : Lecture propre par index de tuple pour SQLite local
         for v in ventes_filtrees:
+            facture_no = v[0]
+            client = v[1]
             art_propre = str(v[2]).strip()
-            grille_audit.insert("", tk.END, values=(v[0], v[1], art_propre, f"{v[3]} FCFA", f"{v[4]} à {v[5]}", nom_vendeuse.upper()))
+            montant_ttc = f"{v[3]} FCFA" if "FCFA" not in str(v[3]) else v[3]
+            date_formatee = v[4]
+            heure = v[5]
+            grille_audit.insert("", tk.END, values=(facture_no, client, art_propre, montant_ttc, f"{date_formatee} à {heure}", nom_vendeuse.upper()))
 
     def action_afficher_tout_historique():
         for i in grille_audit.get_children():
             grille_audit.delete(i)
         toutes_les_ventes = data_base.recuper_tout_les_ventes()
+        
+        # 🟢 CORRIGÉ : Lecture propre par index de tuple pour le registre général local
         for v in toutes_les_ventes:
+            facture_no = v[0]
+            client = v[1]
             art_propre = str(v[2]).strip()
-            grille_audit.insert("", tk.END, values=(v[0], v[1], art_propre, f"{v[3]} FCFA", v[4], str(v[5]).upper()))
+            montant_ttc = f"{v[3]} FCFA" if "FCFA" not in str(v[3]) else v[3]
+            date_formatee = v[4]
+            caissiere_nom = str(v[5]).upper()
+            grille_audit.insert("", tk.END, values=(facture_no, client, art_propre, montant_ttc, date_formatee, caissiere_nom))
 
     audit = Toplevel(FENETRE_PRINCIPALE_LOGIN)
     audit.title("📊 Tableau de Bord Économique")
@@ -374,7 +406,7 @@ def ouvrir_panneau_historique():
     label_perf = tk.Label(cadre_stat, text="📈 En attente d'analyse...", font=("Helvetica", 10, "italic"), bg="#f8fafc", fg="#475569", anchor=tk.W)
     label_perf.grid(row=3, column=0, columnspan=5, sticky=tk.EW, pady=2)
 
-    # Zone du bas : Le registre de la grille enfin visible
+    # Zone du bas : Le registre de la grille visible
     cadre_grille = tk.LabelFrame(audit, text="Registre des transactions et ventes", bg="#f8fafc", padx=10, pady=8)
     cadre_grille.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
 
@@ -383,7 +415,6 @@ def ouvrir_panneau_historique():
     
     tk.Label(cadre_filtre_nom, text="Caissière :", bg="#f8fafc").pack(side=tk.LEFT, padx=2)
     
-    # 🔑 LISTE DÉROULANTE DES CAISSIÈRES DEMANDÉE : Extraction automatique
     liste_caissieres = data_base.recuperer_liste_tous_employes()
     select_vendeuse = ttk.Combobox(cadre_filtre_nom, values=liste_caissieres, width=18, state="readonly")
     if liste_caissieres:
@@ -401,7 +432,7 @@ def ouvrir_panneau_historique():
 
     action_afficher_tout_historique()
 # =====================================================================
-# INTERFACE GRAPHIQUE MULTI-SESSIONS : app_visuel.py v5.5 (PARTIE 4 DE 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 4 SUR 5)
 # =====================================================================
 
 # --- 4. CONFIGURATION ET RAJOUT DU PERSONNEL (EXCLUSIVITÉ GÉRANT) ---
@@ -450,13 +481,13 @@ def ouvrir_panneau_administration():
     select_tva_personnel.current(0)
 
     tk.Button(cadre, text="➕ CRÉER LE COMPTE SÉCURISÉ", bg="#3b82f6", fg="white", font=("Helvetica", 9, "bold"), command=action_ajouter_caissier, pady=6).pack(fill=tk.X, pady=15)
-# =====================================================================
-# INTERFACE GRAPHIQUE MULTI-SESSIONS : app_visuel.py v5.5 (BLOC 5A)
-# =====================================================================
 
-# --- 5. INTERFACE PRINCIPALE DE FACTURATION / COMPTOIR ---
+
+# =====================================================================
+# INTERFACE PRINCIPALE DE FACTURATION / COMPTOIR
+# =====================================================================
 def ouvrir_comptoir_facturation():
-    """Interface de vente principale pour les caissières et le gérant."""
+    """Interface de vente principale pour les caissières et le gérant avec mise à jour des stocks."""
     global SESSION_UTILISATEUR, NOM_CAISSIERE_ACTIVE, NOM_BOUTIQUE_FIXE
 
     nom_boutique_fixe = (data_base.recuperer_nom_boutique_sql() or NOM_BOUTIQUE_FIXE).upper()
@@ -464,24 +495,66 @@ def ouvrir_comptoir_facturation():
 
     comptoir = Toplevel(FENETRE_PRINCIPALE_LOGIN)
     comptoir.title(f"💳 KASHFLOW Comptoir - Session {NOM_CAISSIERE_ACTIVE.upper()}")
-    comptoir.geometry("480x690")
+    comptoir.geometry("480x720")
     comptoir.configure(bg="#f8fafc")
-    threading.Thread(target=synchroniser_file_cloud, daemon=True).start()
 
-    def planifier_synchronisation_cloud():
+    def rafraichir_stocks_depuis_cloud():
+        """Interroge l'API Cloud pour mettre à jour les stocks locaux (Mise à jour descendante)."""
+        if not URL_API_KASHFLOW or not CLE_API_KASHFLOW:
+            return
+        try:
+            reponse = requests.get(
+                f"{URL_API_KASHFLOW}/stocks/etat",
+                headers={"X-API-Key": CLE_API_KASHFLOW},
+                timeout=5
+            )
+            if reponse.status_code == 200:
+                donnees_serveur = reponse.json()
+                # On parcourt la liste envoyée par le serveur pour forcer la mise à jour locale
+                for item in donnees_serveur.get("inventaire_magasin", []):
+                    art = item.get("article_modele", "")
+                    qte = item.get("quantite_restante", 0)
+                    if art:
+                        data_base.forcer_mise_a_jour_stock_local(art, qte)
+                
+                # Mise à jour graphique immédiate de la liste déroulante des caissières
+                actualiser_liste_deroulante_smartphones()
+        except Exception as e:
+            logging.warning("Erreur rafraîchissement descendant des stocks : %s", e)
+
+    def actualiser_liste_deroulante_smartphones():
+        """Recharge les produits dispos dans la liste de sélection Tkinter."""
+        try:
+            connexion = sqlite3.connect(data_base.DB_NAME)
+            curseur = connexion.cursor()
+            curseur.execute("SELECT modele FROM stocks WHERE quantite_dispo > 0")
+            modeles = [str(row[0]).strip() for row in curseur.fetchall()]
+            connexion.close()
+            
+            liste_smartphones["values"] = modeles
+            if modeles and not liste_smartphones.get():
+                liste_smartphones.current(0)
+        except Exception:
+            pass
+
+    def planifier_synchronisation_et_ecoute():
+        """Planifie l'envoi des factures et la réception des stocks toutes les 30 secondes."""
         if comptoir.winfo_exists():
+            # 1. Envoi ascendant (Factures PC -> Cloud)
             threading.Thread(target=synchroniser_file_cloud, daemon=True).start()
-            comptoir.after(30000, planifier_synchronisation_cloud)
+            # 2. Réception descendante (Stocks Cloud -> Toutes les machines employés)
+            threading.Thread(target=rafraichir_stocks_depuis_cloud, daemon=True).start()
+            comptoir.after(30000, planifier_synchronisation_et_ecoute)
 
-    comptoir.after(30000, planifier_synchronisation_cloud)
+    # Allumage immédiat des flux réseau
+    threading.Thread(target=synchroniser_file_cloud, daemon=True).start()
+    threading.Thread(target=rafraichir_stocks_depuis_cloud, daemon=True).start()
+    comptoir.after(30000, planifier_synchronisation_et_ecoute)
 
     tk.Label(comptoir, text=f"{nom_boutique_fixe} - COMPTOIR DE FACTURATION", font=("Helvetica", 12, "bold"), bg="#0f766e", fg="white", pady=8).pack(fill=tk.X)
-        # =====================================================================
-    # 📡 AJOUT DU DISPOSITIF DE VÉRIFICATION DU CLOUD EN DIRECT (SÉRIE C)
-    # =====================================================================
+
     def verifier_connexion_cloud():
         try:
-            # On tente une mini requête hyper rapide vers ton Render (Délai max 4 secondes)
             reponse = requests.get(URL_API_KASHFLOW, timeout=4)
             if reponse.status_code == 200:
                 label_statut_cloud.config(text="CONNECTÉ 🟢", fg="#10b981")
@@ -490,7 +563,6 @@ def ouvrir_comptoir_facturation():
         except Exception:
             label_statut_cloud.config(text=" déconnecté 🔴", fg="#dc2626")
 
-    # Fonction manuelle reliée au bouton pour rafraîchir le statut au clic
     def forcer_test_reseau():
         label_statut_cloud.config(text="🔄 Connexion en cours...", fg="#94a3b8")
         comptoir.update_idletasks()
@@ -498,27 +570,23 @@ def ouvrir_comptoir_facturation():
             reponse = requests.get(URL_API_KASHFLOW, timeout=4)
             if reponse.status_code == 200:
                 label_statut_cloud.config(text="📡 CLOUD CONNECTÉ : EN DIRECT 🟢", fg="#10b981")
-                messagebox.showinfo("Réseau OK", "Connexion réussie avec le serveur Render !")
+                threading.Thread(target=rafraichir_stocks_depuis_cloud, daemon=True).start()
+                messagebox.showinfo("Réseau OK", "Connexion et mise à jour des stocks réussies !")
             else:
                 label_statut_cloud.config(text="📡 SERVEUR EN LIGNE (RÉPONSE INCONNUE) 🟡", fg="#f59e0b")
         except Exception:
             label_statut_cloud.config(text="📡 CLOUD DÉCONNECTÉ (PAS D'INTERNET) 🔴", fg="#dc2626")
-            messagebox.showwarning("Réseau Coupé", "Impossible de joindre Render.\n\nLes ventes seront stockées localement en attendant le retour d'Internet.")
+            messagebox.showwarning("Réseau Coupé", "Impossible de joindre le serveur. Fonctionnement local activé.")
 
-    # Dessin des éléments sur l'interface graphique (sous le titre)
     label_statut_cloud = tk.Label(comptoir, text="📡 VÉRIFICATION DU STATUT RÉSEAU...", font=("Helvetica", 10, "bold"), bg="#1e3a8a", fg="white")
     label_statut_cloud.pack(pady=2)
     
     btn_test_reseau = tk.Button(comptoir, text="🔄 Tester la liaison Cloud", font=("Helvetica", 8, "bold"), bg="#1e293b", fg="white", command=forcer_test_reseau)
     btn_test_reseau.pack(pady=2)
     
-    # Déclenche automatiquement un premier test 1 seconde après l'affichage du comptoir
     comptoir.after(1000, verifier_connexion_cloud)
-    # =====================================================================
-
-
     def action_bouton_enregistrer():
-        """Enregistre une vente et génère le PDF avec une sécurité totale."""
+        """Enregistre une vente, déduit le stock local et pousse l'opération vers l'écosystème Cloud."""
         caissiere_nom = str(NOM_CAISSIERE_ACTIVE).strip().lower()
         nom_client = entree_client.get().strip()
         smartphone = liste_smartphones.get().strip()
@@ -544,7 +612,6 @@ def ouvrir_comptoir_facturation():
                 messagebox.showerror("Stock Insuffisant", verif_stock["reason"])
                 return
 
-            # 🔑 DIRECTIVE TVA : Le gérant applique à la volée via la case à cocher, la caissière suit son profil
             if SESSION_UTILISATEUR == "gerant":
                 applique_tva = 1 if var_tva_directe.get() else 0
             else:
@@ -557,11 +624,10 @@ def ouvrir_comptoir_facturation():
             num_facture = data_base.enregistrer_vente_sql(
                 nom_client, smartphone, desc,
                 calcul["montant_ht"], calcul["valeur_tva"], calcul["total_ttc"],
-                caissiere_nom
+                caissiere_nom, reference_locale
             )
 
             if num_facture:
-                # 🟢 LE CORRECTIF CHIRURGICAL : Schéma strict aligné à 100% sur Render
                 donnees_cloud = {
                     "reference_locale": reference_locale,
                     "client": str(nom_client).strip(),
@@ -570,9 +636,10 @@ def ouvrir_comptoir_facturation():
                     "prix_ht": float(prix),
                     "quantite": int(qte),
                     "caissiere": str(caissiere_nom).strip().lower(),
-                    "applique_tva": int(applique_tva) # 🔑 Transmet 1 ou 0 proprement
+                    "applique_tva_vente": int(applique_tva)
                 }
 
+                # Propulsion asynchrone instantanée vers la file réseau
                 threading.Thread(target=synchroniser_vente_cloud, args=(reference_locale, donnees_cloud), daemon=True).start()
 
                 succes_pdf = operation.generer_recu_pdf_industriel(
@@ -592,6 +659,7 @@ def ouvrir_comptoir_facturation():
                 entree_desc.delete(0, tk.END)
                 entree_prix.delete(0, tk.END)
                 entree_quantite.delete(0, tk.END)
+                actualiser_liste_deroulante_smartphones()
                 entree_client.focus()
         except Exception as e:
             messagebox.showerror("Erreur Système", f"Une erreur s'est produite : {str(e)}")
@@ -605,15 +673,7 @@ def ouvrir_comptoir_facturation():
 
     tk.Label(cadre, text="Sélectionner l'Article :", bg="#f8fafc", font=("Helvetica", 10, "bold")).pack(anchor=tk.W)
     liste_smartphones = ttk.Combobox(cadre, state="readonly", font=("Helvetica", 10))
-    
-    connexion = sqlite3.connect(data_base.DB_NAME)
-    curseur = connexion.cursor()
-    curseur.execute("SELECT modele FROM stocks WHERE quantite_dispo > 0")
-    modeles = [str(row[0]).strip() for row in curseur.fetchall()]
-    connexion.close()
-    
-    liste_smartphones["values"] = modeles
-    if modeles: liste_smartphones.current(0)
+    actualiser_liste_deroulante_smartphones()
     liste_smartphones.pack(fill=tk.X, pady=4)
 
     tk.Label(cadre, text="Description unique (N° IMEI, Série, SAV) :", bg="#f8fafc", font=("Helvetica", 10, "bold")).pack(anchor=tk.W)
@@ -625,20 +685,14 @@ def ouvrir_comptoir_facturation():
     entree_prix.pack(fill=tk.X, pady=4)
 
     tk.Label(cadre, text="Quantité :", bg="#f8fafc", font=("Helvetica", 10, "bold")).pack(anchor=tk.W)
-# =====================================================================
-# INTERFACE GRAPHIQUE MULTI-SESSIONS : app_visuel.py v5.5 (BLOC 5B - 1/2)
-# =====================================================================
-
     entree_quantite = tk.Entry(cadre, font=("Helvetica", 11), bd=2)
     entree_quantite.pack(fill=tk.X, pady=4)
 
-    # 🔑 CASE À COCHER TVA EN DIRECT AU COMPTOIR POUR LE GÉRANT
     var_tva_directe = tk.BooleanVar(value=True)
     if SESSION_UTILISATEUR == "gerant":
         case_tva = tk.Checkbutton(cadre, text="Facturer la TVA (19.25%) sur cette vente", variable=var_tva_directe, bg="#f8fafc", font=("Helvetica", 10, "bold"), fg="#1e3a8a")
         case_tva.pack(anchor=tk.W, pady=6)
 
-    # 🚀 CONFIGURATION DE LA NAVIGATION RAPIDE (Touche Entrée)
     entree_client.bind("<Return>", lambda event: liste_smartphones.focus())
     liste_smartphones.bind("<Return>", lambda event: entree_desc.focus())
     entree_desc.bind("<Return>", lambda event: entree_prix.focus())
@@ -647,18 +701,16 @@ def ouvrir_comptoir_facturation():
 
     tk.Button(cadre, text="🛒 VALIDER LA VENTE & ÉMETTRE LE PDF", font=("Helvetica", 11, "bold"), bg="#10b981", fg="white", command=action_bouton_enregistrer, pady=10).pack(fill=tk.X, pady=15)
 
-    # Menu de bas de page adaptatif selon la session
     tk.Label(comptoir, text="PANNEAU DE CONTROLE SÉCURISÉ", font=("Helvetica", 10, "bold"), bg="#e2e8f0", fg="#1e293b", pady=4).pack(fill=tk.X)
     cadre_menu = tk.Frame(comptoir, bg="#e2e8f0", padx=10, pady=8)
     cadre_menu.pack(fill=tk.X)
 
     if SESSION_UTILISATEUR == "gerant":
         tk.Button(cadre_menu, text="📦 Stocks", bg="#0284c7", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_stock).pack(side=tk.LEFT, padx=3)
-        tk.Button(cadre_menu, text="📊 Audits", bg="#7c3aed", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_historique).pack(side=tk.LEFT, padx=3)
-        tk.Button(cadre_menu, text="⚙️ Profils", bg="#ea580c", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_administration).pack(side=tk.LEFT, padx=3)
+        tk.Button(cadre_menu, text="📊 analyse", bg="#7c3aed", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_historique).pack(side=tk.LEFT, padx=3)
+        tk.Button(cadre_menu, text="⚙️ employer", bg="#ea580c", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_administration).pack(side=tk.LEFT, padx=3)
     else:
-        # 🔑 ONGLÈT HISTORIQUE TEMPOREL PERSONNEL POUR CHAQUE CAISSIÈRE
-        tk.Button(cadre_menu, text="📊 MON HISTORIQUE TEMPOREL DE VENTES", bg="#f59e0b", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_historique_caissiere).pack(side=tk.LEFT, padx=5)
+        tk.Button(cadre_menu, text="📊 HISTORIQUE DE VENTES", bg="#f59e0b", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_historique_caissiere).pack(side=tk.LEFT, padx=5)
     
     def deconnecter():
         comptoir.destroy()
@@ -690,7 +742,7 @@ def ouvrir_historique_caissiere():
     select_tempo = ttk.Combobox(cadre_stat, values=["JOUR", "MOIS", "ANNEE"], width=10, state="readonly")
     select_tempo.grid(row=0, column=1, padx=5); select_tempo.current(0)
 
-    tk.Label(cadre_stat, text="Cible (ex: 4/9/2026 / 9 / 2026) :", bg="#f8fafc").grid(row=0, column=2, padx=5, sticky=tk.W)
+    tk.Label(cadre_stat, text="Cible (ex: 31/08/2026) :", bg="#f8fafc").grid(row=0, column=2, padx=5, sticky=tk.W)
     entree_cible_historique = tk.Entry(cadre_stat, width=15, font=("Helvetica", 10), bd=2)
     entree_cible_historique.grid(row=0, column=3, padx=5)
 
@@ -704,6 +756,7 @@ def ouvrir_historique_caissiere():
         ventes = data_base.recuperer_ventes_par_caissiere(caissiere_nom)
         total_ttc = 0.0
 
+        # 🟢 CORRIGÉ : Parfait alignement sur le format tuple SQLite d'usine local
         for v in ventes:
             date_brute = str(v[4]).strip()
             garder = False
@@ -733,9 +786,7 @@ def ouvrir_historique_caissiere():
     arbre_historique.heading("ID", text="N°"); arbre_historique.heading("Client", text="CLIENT"); arbre_historique.heading("Article", text="ARTICLE"); arbre_historique.heading("Total TTC", text="NET TTC"); arbre_historique.heading("Date/Heure", text="TEMPOREL"); arbre_historique.heading("Caissière", text="EMETTEUR")
     arbre_historique.column("ID", width=40, anchor=tk.CENTER); arbre_historique.column("Client", width=120, anchor=tk.W); arbre_historique.column("Article", width=180, anchor=tk.W); arbre_historique.column("Total TTC", width=110, anchor=tk.CENTER); arbre_historique.column("Date/Heure", width=140, anchor=tk.CENTER); arbre_historique.column("Caissière", width=100, anchor=tk.CENTER)
     arbre_historique.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
-# =====================================================================
-# ÉCRAN DE VERROUILLAGE SÉCURISÉ ET LOGIQUE DE DÉMARRAGE (BLOC 5B - 2/2)
-# =====================================================================
+
 
 def verifier_acces():
     """Valide la session employé et lance l'assistant d'installation en 2 étapes au premier démarrage."""
@@ -754,7 +805,6 @@ def verifier_acces():
         compte_existe = curseur.fetchone()
         connexion.close()
 
-        # 🔑 L'ASSISTANT D'INSTALLATION D'USINE EN 2 ÉTAPES (NOM BOUTIQUE + CODE PATRON)
         if compte_existe is None:
             nom_magasin = simpledialog.askstring("Installation d'Usine - Étape 1/2", "Bienvenue chez KashFlow Manager !\n\nVeuillez entrer le NOM OFFICIEL de votre entreprise :")
             if not nom_magasin or not nom_magasin.strip():
@@ -775,7 +825,7 @@ def verifier_acces():
             SESSION_UTILISATEUR = str(user).strip().lower()
             NOM_CAISSIERE_ACTIVE = str(user).strip().lower()
             messagebox.showinfo("Accès Autorisé", f"Bienvenue {SESSION_UTILISATEUR.upper()} !")
-            FENETRE_PRINCIPALE_LOGIN.withdraw() # Masquage de la racine unique
+            FENETRE_PRINCIPALE_LOGIN.withdraw()
             ouvrir_comptoir_facturation()
         else:
             messagebox.showerror("Accès Refusé", "Identifiant ou mot de passe incorrect.")
@@ -812,13 +862,39 @@ entree_user.pack(fill=tk.X, pady=5)
 entree_user.insert(0, "gerant")
 
 tk.Label(boite, text="Mot de passe secret :", bg="#1e293b", fg="#cbd5e1").pack(anchor=tk.W)
+# =====================================================================
+# ÉCRAN DE VERROUILLAGE SÉCURISÉ ET CONFIGURATION DU POINT DE DÉMARRAGE
+# =====================================================================
+
+# Champ de saisie du mot de passe secret
 entree_password = tk.Entry(boite, font=("Helvetica", 11), show="*", bd=2)
 entree_password.pack(fill=tk.X, pady=5)
 
+# 🚀 NAVIGATION CLAVIER RAPIDE : La touche Entrée gère le flux de connexion
 entree_user.bind("<Return>", lambda event: entree_password.focus())
 entree_password.bind("<Return>", lambda event: verifier_acces())
 
-tk.Button(login, text="🔓 ACCÉDER AU COMPTOIR", font=("Helvetica", 11, "bold"), bg="#3b82f6", fg="white", command=verifier_acces).pack(fill=tk.X, padx=30, pady=15)
-tk.Button(login, text="❓ Mot de passe oublié / Réinitialiser", font=("Helvetica", 9, "underline"), bg="#1e293b", fg="#94a3b8", bd=0, command=recuperer_mot_de_passe_oublie, cursor="hand2").pack(pady=10)
+# Bouton principal d'accès sécurisé au logiciel de caisse
+tk.Button(
+    login, 
+    text="🔓 ACCÉDER AU COMPTOIR", 
+    font=("Helvetica", 11, "bold"), 
+    bg="#3b82f6", 
+    fg="white", 
+    command=verifier_acces
+).pack(fill=tk.X, padx=30, pady=15)
 
+# Bouton de récupération et de réinitialisation du mot de passe gérant
+tk.Button(
+    login, 
+    text="❓ Mot de passe oublié / Réinitialiser", 
+    font=("Helvetica", 9, "underline"), 
+    bg="#1e293b", 
+    fg="#94a3b8", 
+    bd=0, 
+    command=recuperer_mot_de_passe_oublie, 
+    cursor="hand2"
+).pack(pady=10)
+
+# Allumage de la boucle principale de l'interface d'usine
 login.mainloop()

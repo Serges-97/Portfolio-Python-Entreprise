@@ -1,36 +1,17 @@
 # =====================================================================
-# SYSTEME KASHFLOW - MODULE 1 : data_base.py (PARTIE 1 SUR 3)
+# MODULE 1 : data_base.py (Version Multi-Postes Interconnectée - 1 SUR 3)
 # =====================================================================
 import sqlite3
-import os  # 🟢 INDISPENSABLE : Supprime le crash d'allumage sur Render
+import os
 import logging
-import json  # 🟢 INDISPENSABLE : Pour le décodage de la file d'attente
 from datetime import datetime
 
-# 📁 FORCE LE CHEMIN REUSSI : Configuration des fichiers de traçabilité d'usine
+# 📁 BASE DE DONNÉES DE LA CAISSE LOCALE
 DOSSIER_ACTUEL = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = os.path.join(DOSSIER_ACTUEL, "gestion_caisse.db")
 FICHIER_LOG = os.path.join(DOSSIER_ACTUEL, "kashflow_debug.log")
 
-# 🌐 Détection dynamique de la base de données Cloud PostgreSQL (Pour Render)
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-def obtenir_connexion_universelle():
-    """
-    Crée une connexion dynamique : PostgreSQL sur Render, SQLite3 sur le PC local.
-    C'est la structure idéale pour commercialiser ton application.
-    """
-    if DATABASE_URL:
-        # 🟢 CORRECTIF ANTI-VAGUE : Importation dynamique masquée par son nom textuel
-        module_db = __import__("psycopg2")
-        return module_db.connect(DATABASE_URL)
-    else:
-        # Sur l'ordinateur du magasin, on reste sur l'infrastructure locale SQLite3
-        return sqlite3.connect(DB_NAME)
-
-
-
-# Configuration des fichiers de traçabilité et log de débogage
+# Configuration de la traçabilité d'usine
 logging.basicConfig(
     filename=FICHIER_LOG,
     level=logging.INFO,
@@ -38,18 +19,14 @@ logging.basicConfig(
 )
 
 def initialisation_systeme():
-    """Initialise l'architecture de données de manière hybride SQLite/PostgreSQL."""
-    connexion = obtenir_connexion_universelle()
+    """Initialise l'architecture SQLite complète pour le fonctionnement Multi-Postes."""
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
     
-    # 🟢 ADAPTATION DE SYNTAXE UNIVERSELLE POUR LE TYPE ID INCREMENTAL
-    serial_type = "SERIAL" if DATABASE_URL else "INTEGER PRIMARY KEY AUTOINCREMENT"
-    pk_constraint = "PRIMARY KEY" if DATABASE_URL else ""
-    
-    # 1. Table des Ventes Temporelles et Découpées
-    curseur.execute(f"""
+    # 1. Table des Ventes Temporelles
+    curseur.execute("""
     CREATE TABLE IF NOT EXISTS ventes (
-        id {serial_type} {pk_constraint},
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         client TEXT NOT NULL,
         article TEXT NOT NULL,
         description_unique TEXT NOT NULL,
@@ -66,17 +43,16 @@ def initialisation_systeme():
     )
     """)
 
-    # Raccordement et blindage des colonnes Cloud en local pour SQLite
-    if not DATABASE_URL:
-        colonnes_ventes = [ligne[1] for ligne in curseur.execute("PRAGMA table_info(ventes)").fetchall()]
-        if "reference_locale" not in colonnes_ventes:
-            curseur.execute("ALTER TABLE ventes ADD COLUMN reference_locale TEXT")
-            curseur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_ventes_reference_locale ON ventes(reference_locale)")
+    # Alignement préventif de la colonne réseau
+    colonnes_ventes = [ligne[1] for ligne in curseur.execute("PRAGMA table_info(ventes)").fetchall()]
+    if "reference_locale" not in colonnes_ventes:
+        curseur.execute("ALTER TABLE ventes ADD COLUMN reference_locale TEXT")
+        curseur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_ventes_reference_locale ON ventes(reference_locale)")
 
-    # File d'attente pour la synchronisation asynchrone sécurisée
-    curseur.execute(f"""
+    # File d'attente pour la synchronisation asynchrone des factures
+    curseur.execute("""
     CREATE TABLE IF NOT EXISTS synchronisations_en_attente (
-        id {serial_type} {pk_constraint},
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         reference_locale TEXT UNIQUE NOT NULL,
         donnees_json TEXT NOT NULL,
         derniere_erreur TEXT,
@@ -85,17 +61,17 @@ def initialisation_systeme():
     )
     """)
     
-    # 2. Table des Employés du magasin avec Régime Fiscal de TVA
-    curseur.execute(f"""
+    # 2. Table des Employés
+    curseur.execute("""
     CREATE TABLE IF NOT EXISTS employes (
-        id {serial_type} {pk_constraint},
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         identifiant TEXT UNIQUE NOT NULL,
         mot_de_passe TEXT NOT NULL,
         applique_tva INTEGER DEFAULT 1
     )
     """)
     
-    # 3. Table de Configuration (Nom de la boutique du client)
+    # 3. Table de Configuration (Nom de la boutique)
     curseur.execute("""
     CREATE TABLE IF NOT EXISTS configuration (
         cle TEXT PRIMARY KEY,
@@ -104,81 +80,66 @@ def initialisation_systeme():
     """)
     
     # 4. Table des Stocks Physiques Réels
-    curseur.execute(f"""
+    curseur.execute("""
     CREATE TABLE IF NOT EXISTS stocks (
-        id {serial_type} {pk_constraint},
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         modele TEXT UNIQUE NOT NULL,
         quantite_dispo INTEGER NOT NULL,
         ventes_cumulees INTEGER DEFAULT 0
     )
     """)
     
-    # Produits électroniques injectés à l'allumage d'usine (Syntaxe compatible)
+    # Produits électroniques injectés à l'allumage d'usine
     produits_usine = [
-        ("iphone 15 pro", 20, 0),
-        ("Ecran plasma LG 4K", 15, 0),
-        ("Frigo innova split", 8, 0),
-        ("Ordinateur laptop hp", 12, 0)
+        ("iPhone 15 Pro", 20, 0),
+        ("Écran Plasma LG 4K", 15, 0),
+        ("Frigo Innova Split", 8, 0),
+        ("Ordinateur Laptop HP", 12, 0)
     ]
-    
-    param_style = "%s" if DATABASE_URL else "?"
-    req_ignore = "INSERT INTO stocks (modele, quantite_dispo, ventes_cumulees) VALUES ({0}, {0}, {0}) ON CONFLICT(modele) DO NOTHING;".format(param_style) if DATABASE_URL else "INSERT OR IGNORE INTO stocks (modele, quantite_dispo, ventes_cumulees) VALUES (?, ?, ?)"
-    
     for p in produits_usine:
-        curseur.execute(req_ignore, p)
+        curseur.execute("INSERT OR IGNORE INTO stocks (modele, quantite_dispo, ventes_cumulees) VALUES (?, ?, ?)", p)
         
     connexion.commit()
     connexion.close()
 # =====================================================================
-# SYSTEME KASHFLOW - MODULE 1 : data_base.py (PARTIE 2 SUR 3)
+# MODULE 1 : data_base.py (Version Multi-Postes Interconnectée - 2 SUR 3)
 # =====================================================================
 
 def configurer_compte_gerant_sql(code_secret):
     """Grave ou modifie le mot de passe secret de l'administrateur gérant."""
     try:
-        connexion = obtenir_connexion_universelle()
+        connexion = sqlite3.connect(DB_NAME)
         curseur = connexion.cursor()
-        param = "%s" if DATABASE_URL else "?"
-        
-        # Nettoyage préventif pour éviter les doublons d'ID
-        curseur.execute("DELETE FROM employes WHERE id = 1")
-        
-        curseur.execute(f"""
-        INSERT INTO employes (id, identifiant, mot_de_passe, applique_tva)
-        VALUES (1, 'gerant', {param}, 1)
+        curseur.execute("""
+        INSERT OR REPLACE INTO employes (id, identifiant, mot_de_passe, applique_tva)
+        VALUES (1, 'gerant', ?, 1)
         """, (code_secret.strip(),))
         connexion.commit()
         connexion.close()
         return True
-    except Exception as e:
-        logging.error("Erreur configuration gerant: %s", e)
+    except Exception:
         return False
 
 def ajouter_nouvel_employe_sql(identifiant, mot_de_passe, applique_tva):
     """Permet au patron d'ajouter un profil caissière avec son régime de TVA attitré."""
     try:
-        connexion = obtenir_connexion_universelle()
+        connexion = sqlite3.connect(DB_NAME)
         curseur = connexion.cursor()
-        param = "%s" if DATABASE_URL else "?"
-        
-        curseur.execute(f"""
+        curseur.execute("""
         INSERT INTO employes (identifiant, mot_de_passe, applique_tva)
-        VALUES ({param}, {param}, {param})
+        VALUES (?, ?, ?)
         """, (identifiant.strip().lower(), mot_de_passe.strip(), int(applique_tva)))
         connexion.commit()
         connexion.close()
         return True
-    except Exception as e:
-        logging.error("Erreur ajout employe: %s", e)
+    except sqlite3.IntegrityError:
         return False
 
 def verifier_identifiants_sql(utilisateur, code_secret):
     """Vérifie la validité des accès saisis à l'écran de login."""
-    connexion = obtenir_connexion_universelle()
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    curseur.execute(f"SELECT id FROM employes WHERE identifiant = {param} AND mot_de_passe = {param}", 
+    curseur.execute("SELECT * FROM employes WHERE identifiant = ? AND mot_de_passe = ?", 
                     (utilisateur.strip().lower(), code_secret.strip()))
     trouve = curseur.fetchone()
     connexion.close()
@@ -186,23 +147,18 @@ def verifier_identifiants_sql(utilisateur, code_secret):
 
 def obtenir_regime_tva_employe(utilisateur):
     """Renvoie 1 si l'employé connecté applique la TVA, 0 sinon."""
-    connexion = obtenir_connexion_universelle()
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    curseur.execute(f"SELECT applique_tva FROM employes WHERE identifiant = {param}", (utilisateur.strip().lower(),))
+    curseur.execute("SELECT applique_tva FROM employes WHERE identifiant = ?", (utilisateur.strip().lower(),))
     res = curseur.fetchone()
     connexion.close()
     return res[0] if res else 1
 
-
 def verifier_et_reduire_stock(modele_article, qte_vendue):
-    """Vérifie le stock, applique la baisse, et calcule le seuil critique d'alerte."""
-    connexion = obtenir_connexion_universelle()
+    """Vérifie le stock local, applique la baisse et calcule le seuil d'alerte."""
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    curseur.execute(f"SELECT quantite_dispo, ventes_cumulees FROM stocks WHERE modele = {param}", (modele_article,))
+    curseur.execute("SELECT quantite_dispo, ventes_cumulees FROM stocks WHERE modele = ?", (modele_article,))
     res = curseur.fetchone()
     
     if res is None:
@@ -217,7 +173,7 @@ def verifier_et_reduire_stock(modele_article, qte_vendue):
     nouveau_stock = stock_actuel - qte_vendue
     nouvelles_ventes = ventes_cumulees + qte_vendue
     
-    curseur.execute(f"UPDATE stocks SET quantite_dispo = {param}, ventes_cumulees = {param} WHERE modele = {param}", 
+    curseur.execute("UPDATE stocks SET quantite_dispo = ?, ventes_cumulees = ? WHERE modele = ?", 
                     (nouveau_stock, nouvelles_ventes, modele_article))
     
     curseur.execute("SELECT MAX(ventes_cumulees) FROM stocks")
@@ -231,99 +187,87 @@ def verifier_et_reduire_stock(modele_article, qte_vendue):
     connexion.close()
     return {"autorise": True, "restant": nouveau_stock, "alerte_patron": alerte_commande, "seuil": seuil_dynamique}
 # =====================================================================
-# SYSTEME KASHFLOW - MODULE 1 : data_base.py (PARTIE 3 SUR 3)
+# MODULE 1 : data_base.py (Version Multi-Postes Interconnectée - 3 SUR 3)
 # =====================================================================
 
 def enregistrer_vente_sql(client, article, desc_unique, mnt_ht, tva, ttc, caissiere, reference_locale=None):
-    """Enregistre la transaction en local ou en Cloud avec horodatage millimétré."""
+    """Enregistre la transaction en local avec horodatage millimétré."""
     try:
         maintenant = datetime.now()
         heure_exacte = maintenant.strftime("%H:%M")
-        connexion = obtenir_connexion_universelle()
+        connexion = sqlite3.connect(DB_NAME)
         curseur = connexion.cursor()
-        param = "%s" if DATABASE_URL else "?"
-        
-        curseur.execute(f"""
+        curseur.execute("""
         INSERT INTO ventes (client, article, description_unique, montant_ht, tva, total_ttc, caissiere, annee, mois, jour, heure, reference_locale)
-        VALUES ({param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param}, {param})
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (client, article, desc_unique, mnt_ht, tva, ttc, caissiere.strip().lower(), maintenant.year, maintenant.month, maintenant.day, heure_exacte, reference_locale))
-        
-        num_facture = curseur.lastrowid if not DATABASE_URL else 1
+        num_facture = curseur.lastrowid
         connexion.commit()
         connexion.close()
         return num_facture
     except Exception as e:
-        logging.error("Erreur enregistrement vente: %s", e)
+        logging.error("Erreur enregistrement vente locale : %s", e)
         return None
 
 def mettre_en_attente_synchronisation(reference_locale, donnees):
     """Conserve une vente localement dans la file d'attente si le Cloud est injoignable."""
     import json
-    connexion = obtenir_connexion_universelle()
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    req = "INSERT INTO synchronisations_en_attente (reference_locale, donnees_json, cree_le) VALUES ({0}, {0}, {0}) ON CONFLICT(reference_locale) DO NOTHING;".format(param) if DATABASE_URL else "INSERT OR IGNORE INTO synchronisations_en_attente (reference_locale, donnees_json, cree_le) VALUES (?, ?, ?)"
-    
-    curseur.execute(req, (reference_locale, json.dumps(donnees, ensure_ascii=False), datetime.now().isoformat(timespec="seconds")))
+    curseur.execute(
+        """INSERT OR IGNORE INTO synchronisations_en_attente
+        (reference_locale, donnees_json, cree_le) VALUES (?, ?, ?)""",
+        (reference_locale, json.dumps(donnees, ensure_ascii=False), datetime.now().isoformat(timespec="seconds")),
+    )
     connexion.commit()
     connexion.close()
 
 def recuperer_synchronisations_en_attente():
     """Récupère toutes les transactions bloquées en local pour tentative de renvoi."""
     import json
-    connexion = obtenir_connexion_universelle()
-    curseur = connexion.cursor()
-    curseur.execute("SELECT id, reference_locale, donnees_json FROM synchronisations_en_attente ORDER BY id")
-    lignes = curseur.fetchall()
+    connexion = sqlite3.connect(DB_NAME)
+    lignes = connexion.execute(
+        "SELECT id, reference_locale, donnees_json FROM synchronisations_en_attente ORDER BY id"
+    ).fetchall()
     connexion.close()
-    # 🟢 REPARÉ : Extraction des bons indices du tuple d'usine
     return [(ligne[0], ligne[1], json.loads(ligne[2])) for ligne in lignes]
 
 def marquer_synchronisation_reussie(id_synchronisation, reference_locale):
     """Supprime la vente de la file d'attente et coche le statut synchro à 1."""
-    connexion = obtenir_connexion_universelle()
-    curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    curseur.execute(f"DELETE FROM synchronisations_en_attente WHERE id = {param}", (id_synchronisation,))
-    curseur.execute(f"UPDATE ventes SET synchro = 1 WHERE reference_locale = {param}", (reference_locale,))
+    connexion = sqlite3.connect(DB_NAME)
+    connexion.execute("DELETE FROM synchronisations_en_attente WHERE id = ?", (id_synchronisation,))
+    connexion.execute("UPDATE ventes SET synchro = 1 WHERE reference_locale = ?", (reference_locale,))
     connexion.commit()
     connexion.close()
 
 def enregistrer_erreur_synchronisation(id_synchronisation, message):
     """Incrémente le compteur d'échecs et enregistre le rapport d'erreur réseau."""
-    connexion = obtenir_connexion_universelle()
-    curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    curseur.execute(f"UPDATE synchronisations_en_attente SET tentatives = tentatives + 1, derniere_erreur = {param} WHERE id = {param}", (str(message)[:500], id_synchronisation))
+    connexion = sqlite3.connect(DB_NAME)
+    connexion.execute("UPDATE synchronisations_en_attente SET tentatives = tentatives + 1, derniere_erreur = ? WHERE id = ?", (str(message)[:500], id_synchronisation),)
     connexion.commit()
     connexion.close()
 
-
 def extraire_statistiques_avancees(temporalite, valeur_cible):
-    """Calcule le CA de la période et extrait l'article le plus vendu."""
-    connexion = obtenir_connexion_universelle()
+    """Calcule le CA de la période et extrait l'article le plus vendu en local."""
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
     annee_actuelle = datetime.now().year
-    param = "%s" if DATABASE_URL else "?"
     
     if temporalite == "JOUR":
         try:
             j, m, a = map(int, valeur_cible.split("/"))
-            critere = f"jour = {param} AND mois = {param} AND annee = {param}"
+            critere = "jour = ? AND mois = ? AND annee = ?"
             params_actuels = (j, m, a)
         except Exception:
             connexion.close()
             return {"ca_total": 0.0, "produit_phare": "Format invalide", "message_performance": "Format attendu: J/M/AAAA"}
     elif temporalite == "MOIS":
         m = int(valeur_cible)
-        critere = f"mois = {param} AND annee = {param}"
+        critere = "mois = ? AND annee = ?"
         params_actuels = (m, annee_actuelle)
     else:
         a = int(valeur_cible)
-        critere = f"annee = {param}"
+        critere = "annee = ?"
         params_actuels = (a,)
 
     curseur.execute(f"SELECT SUM(total_ttc) FROM ventes WHERE {critere}", params_actuels)
@@ -332,83 +276,89 @@ def extraire_statistiques_avancees(temporalite, valeur_cible):
     
     curseur.execute(f"SELECT article, COUNT(id) FROM ventes WHERE {critere} GROUP BY article ORDER BY COUNT(id) DESC LIMIT 1", params_actuels)
     top = curseur.fetchone()
-    # 🟢 REPARÉ : Extraction des chaînes textuelles des sous-tuples
     article_phare = f"{top[0]} ({top[1]} ventes)" if top else "Aucun article"
     connexion.close()
     
     return {
-        "ca_total": round(float(ca_actuel), 2), 
+        "ca_total": round(ca_actuel, 2), 
         "produit_phare": article_phare, 
         "message_performance": "📊 Analyse comptable Pro active."
     }
 
 def recuperer_ventes_par_caissiere(nom_caissiere):
-    """Extrait l'historique complet d'une caissière au format dictionnaire Pro (Évite l'erreur 422)."""
-    connexion = obtenir_connexion_universelle()
+    """Extrait l'historique complet d'une vendeuse spécifique sous forme de liste de tuples bruts."""
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    curseur.execute(f"SELECT id, client, article, total_ttc, jour, mois, annee, heure FROM ventes WHERE caissiere = {param} ORDER BY id DESC", (nom_caissiere.strip().lower(),))
+    curseur.execute("SELECT id, client, article, total_ttc, jour || '/' || mois || '/' || annee, heure FROM ventes WHERE caissiere = ? ORDER BY id DESC", (nom_caissiere.strip().lower(),))
     lignes = curseur.fetchall()
     connexion.close()
-    
-    ventes_formatees = []
-    for l in lignes:
-        # 🟢 REPARÉ : Extraction millimétrée de chaque colonne du tuple
-        ventes_formatees.append({
-            "facture_no": l[0],
-            "client": str(l[1]).upper(),
-            "article": str(l[2]).replace("{", "").replace("}", "").upper(),
-            "montant_ttc": f"{float(l[3]):,.0f} FCFA",
-            "date": f"{l[4]}/{l[5]}/{l[6]}",
-            "heure": l[7]
-        })
-    return ventes_formatees
+    return lignes
 
 def recuper_tout_les_ventes():
-    """Renvoie le registre général de toutes les transactions du magasin."""
-    connexion = obtenir_connexion_universelle()
+    """Renvoie le registre général de toutes les transactions locales du magasin."""
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    curseur.execute("SELECT id, client, article, total_ttc, jour, mois, annee, caissiere FROM ventes ORDER BY id DESC")
+    curseur.execute("SELECT id, client, article, total_ttc, jour || '/' || mois || '/' || annee, caissiere FROM ventes ORDER BY id DESC")
     lignes = curseur.fetchall()
     connexion.close()
     return lignes
 
 def recuperer_liste_tous_employes():
-    """Génère la liste textuelle propre pour alimenter le smartphone du patron."""
+    """Génère la liste textuelle propre pour alimenter le Combobox du gérant."""
     try:
-        connexion = obtenir_connexion_universelle()
+        connexion = sqlite3.connect(DB_NAME)
         curseur = connexion.cursor()
         curseur.execute("SELECT identifiant FROM employes WHERE identifiant != 'gerant' ORDER BY identifiant ASC")
         lignes = curseur.fetchall()
         connexion.close()
-        # 🟢 REPARÉ : Extraction de la valeur textuelle brute du tuple
         return [str(ligne[0]).strip().upper() for ligne in lignes if ligne and str(ligne[0]).strip()]
     except Exception:
         return []
 
 def recuperer_nom_boutique_sql():
-    """Va lire l'identité textuelle enregistrée de la boutique en texte pur s'il existe."""
-    connexion = obtenir_connexion_universelle()
+    """Va lire l'identité textuelle enregistrée de la boutique en texte pur."""
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    try:
-        curseur.execute("SELECT valeur FROM configuration WHERE cle = 'nom_boutique'")
-        ligne = curseur.fetchone()
-        connexion.close()
-        # 🟢 REPARÉ : Renvoie la valeur texte du premier champ [0] au lieu du tuple complet
-        return ligne[0] if ligne else None
-    except Exception:
-        connexion.close()
-        return None
+    curseur.execute("SELECT valeur FROM configuration WHERE cle = 'nom_boutique'")
+    ligne = curseur.fetchone()
+    connexion.close()
+    return ligne[0] if ligne else None
 
 def enregistrer_nom_boutique_sql(nom_magasin):
     """Grave définitivement l'en-tête du commerce en configuration."""
-    connexion = obtenir_connexion_universelle()
+    connexion = sqlite3.connect(DB_NAME)
     curseur = connexion.cursor()
-    param = "%s" if DATABASE_URL else "?"
-    
-    req = "INSERT INTO configuration (cle, valeur) VALUES ('nom_boutique', {0}) ON CONFLICT(cle) DO UPDATE SET valeur = EXCLUDED.valeur;".format(param) if DATABASE_URL else "INSERT OR REPLACE INTO configuration (cle, valeur) VALUES ('nom_boutique', ?)"
-    
-    curseur.execute(req, (nom_magasin,))
+    curseur.execute("INSERT OR REPLACE INTO configuration (cle, valeur) VALUES ('nom_boutique', ?)", (nom_magasin,))
     connexion.commit()
     connexion.close()
+
+# =====================================================================
+# 🟢 EXTENSIONS EXCLUSIVES INTERCONNEXION MULTI-POSTES EN TEMPS RÉEL
+# =====================================================================
+
+def obtenir_tous_les_stocks_locaux():
+    """Renvoie l'ensemble de la table des stocks pour rafraîchir l'interface des employés."""
+    connexion = sqlite3.connect(DB_NAME)
+    curseur = connexion.cursor()
+    curseur.execute("SELECT modele, quantite_dispo, ventes_cumulees FROM stocks ORDER BY modele ASC")
+    lignes = curseur.fetchall()
+    connexion.close()
+    return lignes
+
+def forcer_mise_a_jour_stock_local(modele_article, nouvelle_quantite):
+    """Écrase la quantité locale par celle envoyée par le Cloud (Approvisionnement Gérant)."""
+    try:
+        connexion = sqlite3.connect(DB_NAME)
+        curseur = connexion.cursor()
+        # Si le produit n'existe pas encore (nouvel ajout du gérant), on l'insère, sinon on le met à jour
+        curseur.execute("""
+        INSERT INTO stocks (modele, quantite_dispo, ventes_cumulees)
+        VALUES (?, ?, 0)
+        ON CONFLICT(modele) DO UPDATE SET quantite_dispo = ?
+        """, (modele_article.strip(), int(nouvelle_quantite), int(nouvelle_quantite)))
+        connexion.commit()
+        connexion.close()
+        return True
+    except Exception as e:
+        logging.error("Erreur forçage stock local : %s", e)
+        return False
