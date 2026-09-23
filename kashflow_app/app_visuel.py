@@ -1,5 +1,5 @@
 # =====================================================================
-# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 1 SUR 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 1 SUR 7)
 # =====================================================================
 import tkinter as tk
 from tkinter import messagebox, simpledialog, Toplevel, ttk
@@ -36,7 +36,7 @@ def charger_configuration_externe():
         with open(fichier_config, "w", encoding="utf-8") as f:
             f.write("# CONFIGURATION RESEAU KASHFLOW MANAGER \n")
             f.write("URL_API - https://onrender.com \n")
-            f.write("CLE_API - MON_CODE_SECRET_CLIENT\n")
+            f.write("CLE_API - KASHFLOW_KEY_DEFAUT\n")
         return
 
     try:
@@ -63,9 +63,12 @@ def normaliser_nom_caissiere(valeur):
     if valeur is None:
         return "anonyme"
     return str(valeur).strip().lower()
+# =====================================================================
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 2 SUR 7)
+# =====================================================================
 
 def synchroniser_vente_cloud(reference_locale, donnees):
-    """Envoie une vente au Cloud ou la conserve dans la file locale."""
+    """Envoie une vente au Cloud ou la conserve dans la file locale en cas de coupure."""
     donnees_alignees = {
         "reference_locale": reference_locale,
         "client": donnees["client"],
@@ -80,7 +83,7 @@ def synchroniser_vente_cloud(reference_locale, donnees):
     synchroniser_file_cloud()
 
 def synchroniser_file_cloud():
-    """Réessaie les ventes en attente sans bloquer l'interface Tkinter."""
+    """Réessaie les ventes en attente sans bloquer l'interface graphique Tkinter."""
     if not URL_API_KASHFLOW or not CLE_API_KASHFLOW:
         return
 
@@ -101,19 +104,23 @@ def synchroniser_file_cloud():
             logging.warning("Synchronisation différée: %s", erreur)
             break
 # =====================================================================
-# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 2 SUR 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 3 SUR 7)
 # =====================================================================
 
 # =====================================================================
 # 📦 PANNEAU GESTION DE L'INVENTAIRE / STOCKS (EXCLUSIVITÉ GÉRANT)
 # =====================================================================
 def ouvrir_panneau_stock():
-    """Interface d'inventaire adaptative filtrée par ID unique pour éliminer les suppressions groupées et doublons."""
+    """Interface d'inventaire moderne avec barre de défilement et sécurité anti-doublons de casse."""
     if SESSION_UTILISATEUR != "gerant":
         messagebox.showerror("Accès Interdit", "Seul le gérant peut modifier l'inventaire.")
         return
 
+    # Déclaration initiale des variables de saisie pour effacer UnboundLocalError
+    global entree_modele, entree_qte_stock
+
     def pousser_stock_vers_cloud(modele, quantite):
+        """Propulse la modification d'inventaire sur le serveur en direct."""
         if not URL_API_KASHFLOW or not CLE_API_KASHFLOW:
             return
         try:
@@ -130,7 +137,6 @@ def ouvrir_panneau_stock():
         if qte is None: return
 
         connexion = sqlite3.connect(data_base.DB_NAME)
-        # 🟢 CIBLAGE PAR ID : Plus aucun risque de toucher aux autres lignes de même nom
         connexion.execute("UPDATE stocks SET quantite_dispo = quantite_dispo + ? WHERE id = ?", (qte, id_stock_cible))
         qte_totale = connexion.execute("SELECT quantite_dispo FROM stocks WHERE id = ?", (id_stock_cible,)).fetchone()[0]
         connexion.commit()
@@ -138,7 +144,7 @@ def ouvrir_panneau_stock():
         
         pousser_stock_vers_cloud(nom_article_cible.strip().lower(), qte_totale)
         rafraichir_tableau()
-        messagebox.showinfo("Inventaire mis à jour", f"Stock augmenté avec succès.")
+        messagebox.showinfo("Inventaire mis à jour", "Stock augmenté avec succès.")
 
     def rafraichir_tableau():
         """Recharge les stocks et remplit le tableau défilant."""
@@ -147,38 +153,38 @@ def ouvrir_panneau_stock():
         
         lignes = data_base.obtenir_tous_les_stocks_locaux()
         for id_db, modele, quantite, _ in lignes:
-            # On stocke l'ID en cache invisible dans le tableau pour les actions
             tableau_stocks.insert("", tk.END, iid=str(id_db), values=(str(modele).strip().upper(), f"{quantite} pcs"))
+# =====================================================================
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 4 SUR 7)
+# =====================================================================
 
     def action_ajouter_modele():
-            """Crée un nouvel article ou fusionne la quantité si le nom existe déjà."""
-    modele = entree_modele.get().strip().lower()
-    qte_texte = entree_qte_stock.get().strip()
-        
-    if not modele or not qte_texte:
+        """Crée un nouvel article ou fusionne la quantité si le nom existe déjà (Anti-doublon)."""
+        global entree_modele, entree_qte_stock
+        modele = entree_modele.get().strip().lower()
+        qte_texte = entree_qte_stock.get().strip()
+            
+        if not modele or not qte_texte:
             messagebox.showwarning("Champs vides", "Veuillez remplir le modèle et la quantité.")
             return
-            
-    try:
+                
+        try:
             qte = int(qte_texte)
             if qte <= 0: raise ValueError
-            
+                
             connexion = sqlite3.connect(data_base.DB_NAME)
             curseur = connexion.cursor()
             
-            # Utilisation d'une transaction propre avec gestion du conflit de nom
             curseur.execute("""
             INSERT INTO stocks (modele, quantite_dispo) VALUES (?, ?)
             ON CONFLICT(modele) DO UPDATE SET quantite_dispo = quantite_dispo + ?
             """, (modele, qte, qte))
             
-            # 🟢 FIX AJOUT : On récupère la quantité totale cumulée pour le Cloud
             curseur.execute("SELECT quantite_dispo FROM stocks WHERE lower(modele) = ?", (modele,))
-            qte_totale = curseur.fetchone()[0]
+            qte_totale = curseur.fetchone()
             connexion.commit()
             connexion.close()
             
-            # Envoi direct vers le serveur Render
             pousser_stock_vers_cloud(modele, qte_totale)
             
             messagebox.showinfo("Inventaire Mis à jour", f"L'article '{modele.upper()}' a été enregistré !")
@@ -186,19 +192,20 @@ def ouvrir_panneau_stock():
             entree_qte_stock.delete(0, tk.END)
             rafraichir_tableau()
             entree_modele.focus()
-    except ValueError:
+        except ValueError:
             messagebox.showerror("Erreur", "La quantité doit être un entier supérieur à 0.")
 
-
     def action_supprimer_modele():
+        """Supprime l'article sélectionné de façon chirurgicale par son ID unique."""
         selection = tableau_stocks.selection()
         if not selection:
             messagebox.showwarning("Sélection manquante", "Sélectionnez une ligne dans le tableau à supprimer.")
             return
             
-        # Récupération de l'ID unique de la ligne cliquée
+        # 🟢 REPARÉ : Extraction de l'ID de la ligne cliquée
         id_unique_ligne = selection[0]
         item = tableau_stocks.item(id_unique_ligne)
+        # 🟢 REPARÉ : On extrait le texte pur de la première colonne pour l'API
         nom_article = item["values"][0]
 
         if not messagebox.askyesno("Confirmation", f"Voulez-vous retirer uniquement cette ligne « {nom_article} » de l'inventaire ?"): 
@@ -206,28 +213,30 @@ def ouvrir_panneau_stock():
 
         connexion = sqlite3.connect(data_base.DB_NAME)
         curseur = connexion.cursor()
-        # 🟢 CORRECTION CHIRURGICALE : On supprime uniquement l'ID cliqué, les doublons restent intacts !
         curseur.execute("DELETE FROM stocks WHERE id = ?", (id_unique_ligne,))
         article_supprime = curseur.rowcount > 0
         connexion.commit()
         connexion.close()
 
         if article_supprime:
-            pousser_stock_vers_cloud(nom_article.lower(), 0)
+            pousser_stock_vers_cloud(str(nom_article).lower(), 0)
             messagebox.showinfo("Succès", "Ligne d'article retirée avec succès.")
             rafraichir_tableau()
         else:
             messagebox.showwarning("Erreur", "Ligne introuvable.")
 
     def action_clic_bouton_quantite():
+        """Déclenche l'ajout de quantité sur l'article sélectionné."""
         selection = tableau_stocks.selection()
         if not selection:
             messagebox.showwarning("Sélection manquante", "Veuillez cliquer sur une ligne du tableau d'abord.")
             return
+        # 🟢 REPARÉ : Extraction propre des indices du tuple Tkinter
         id_cible = selection[0]
         nom_article = tableau_stocks.item(id_cible)["values"][0]
         action_ajouter_quantite(id_cible, nom_article)
 
+    # Dessin de la fenêtre des stocks
     admin_stock = Toplevel(FENETRE_PRINCIPALE_LOGIN)
     admin_stock.title("📦 Gestion des Stocks - Sécurisée par ID")
     admin_stock.geometry("520x540")
@@ -254,6 +263,7 @@ def ouvrir_panneau_stock():
 
     tk.Button(admin_stock, text="➕ AJOUTER QUANTITÉ AU PRODUIT SÉLECTIONNÉ", font=("Helvetica", 9, "bold"), bg="#0f766e", fg="white", command=action_clic_bouton_quantite).pack(fill=tk.X, padx=15, pady=2)
 
+    # Formulaire d'ajouts fixe en bas
     cadre_ajout = tk.LabelFrame(admin_stock, text="Créer ou Approvisionner un Article", font=("Helvetica", 9, "bold"), bg="#f8fafc", padx=10, pady=6)
     cadre_ajout.pack(fill=tk.X, padx=15, pady=10)
 
@@ -274,43 +284,8 @@ def ouvrir_panneau_stock():
     tk.Button(cadre_actions, text="🗑 SUPPRIMER LIGNE SÉLECTIONNÉE", bg="#dc2626", fg="white", font=("Helvetica", 9, "bold"), command=action_supprimer_modele).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
 
     rafraichir_tableau()
-
-
-
-    cadre_ajout = tk.LabelFrame(admin_stock, text="Approvisionner / Ajouter un Nouvel Article", font=("Helvetica", 9, "bold"), bg="#f8fafc", padx=10, pady=10)
-    cadre_ajout.pack(fill=tk.X, padx=15, pady=15)
-
-    tk.Label(cadre_ajout, text="Nom de l'article (ex: Écran Plasma LG, Frigo) :", bg="#f8fafc").pack(anchor=tk.W)
-    entree_modele = tk.Entry(cadre_ajout, font=("Helvetica", 10))
-    entree_modele.pack(fill=tk.X, pady=4)
-
-    tk.Label(cadre_ajout, text="Quantité reçue du fournisseur :", bg="#f8fafc").pack(anchor=tk.W)
-    entree_qte_stock = tk.Entry(cadre_ajout, font=("Helvetica", 10))
-    entree_qte_stock.pack(fill=tk.X, pady=4)
-
-    entree_modele.bind("<Return>", lambda event: entree_qte_stock.focus())
-    entree_qte_stock.bind("<Return>", lambda event: action_ajouter_modele())
-
-    cadre_actions = tk.Frame(cadre_ajout, bg="#f8fafc")
-    cadre_actions.pack(fill=tk.X, pady=8)
-    tk.Button(
-        cadre_actions,
-        text="📥 CONFIRMER L'AJOUT",
-        bg="#0f766e",
-        fg="white",
-        font=("Helvetica", 9, "bold"),
-        command=action_ajouter_modele,
-    ).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
-    tk.Button(
-        cadre_actions,
-        text="🗑 SUPPRIMER L'ARTICLE",
-        bg="#dc2626",
-        fg="white",
-        font=("Helvetica", 9, "bold"),
-        command=action_supprimer_modele,
-    ).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
 # =====================================================================
-# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 3 SUR 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 5 SUR 7)
 # =====================================================================
 
 # --- 3. PANNEAU D'AUDIT COMPTABLE TEMPOREL ET FILTRAGE VISIBLE ---
@@ -347,7 +322,6 @@ def ouvrir_panneau_historique():
             messagebox.showinfo("Rapport", f"Aucune vente pour : {nom_vendeuse}")
             return
             
-        # 🟢 CORRIGÉ : Lecture propre par index de tuple pour SQLite local
         for v in ventes_filtrees:
             facture_no = v[0]
             client = v[1]
@@ -362,7 +336,6 @@ def ouvrir_panneau_historique():
             grille_audit.delete(i)
         toutes_les_ventes = data_base.recuper_tout_les_ventes()
         
-        # 🟢 CORRIGÉ : Lecture propre par index de tuple pour le registre général local
         for v in toutes_les_ventes:
             facture_no = v[0]
             client = v[1]
@@ -430,7 +403,7 @@ def ouvrir_panneau_historique():
 
     action_afficher_tout_historique()
 # =====================================================================
-# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 4 SUR 5)
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 6 SUR 7)
 # =====================================================================
 
 # --- 4. CONFIGURATION ET RAJOUT DU PERSONNEL (EXCLUSIVITÉ GÉRANT) ---
@@ -482,7 +455,7 @@ def ouvrir_panneau_administration():
 
 
 # =====================================================================
-# INTERFACE PRINCIPALE DE FACTURATION / COMPTOIR
+# INTERFACE PRINCIPALE : COMPTOIR DE FACTURATION ET LOGIQUE DE FLUX
 # =====================================================================
 def ouvrir_comptoir_facturation():
     """Interface de vente principale pour les caissières et le gérant avec mise à jour des stocks."""
@@ -508,25 +481,23 @@ def ouvrir_comptoir_facturation():
             )
             if reponse.status_code == 200:
                 donnees_serveur = reponse.json()
-                # On parcourt la liste envoyée par le serveur pour forcer la mise à jour locale
                 for item in donnees_serveur.get("inventaire_magasin", []):
                     art = item.get("article_modele", "")
                     qte = item.get("quantite_restante", 0)
                     if art:
                         data_base.forcer_mise_a_jour_stock_local(art, qte)
                 
-                # Mise à jour graphique immédiate de la liste déroulante des caissières
                 actualiser_liste_deroulante_smartphones()
         except Exception as e:
             logging.warning("Erreur rafraîchissement descendant des stocks : %s", e)
 
     def actualiser_liste_deroulante_smartphones():
-        """Recharge les produits dispos dans la liste de sélection Tkinter."""
+        """Recharge les produits disponibles dans la liste déroulante Tkinter en lettres majuscules."""
         try:
             connexion = sqlite3.connect(data_base.DB_NAME)
             curseur = connexion.cursor()
             curseur.execute("SELECT modele FROM stocks WHERE quantite_dispo > 0")
-            modeles = [str(row[0]).strip() for row in curseur.fetchall()]
+            modeles = [str(row[0]).strip().upper() for row in curseur.fetchall()]
             connexion.close()
             
             liste_smartphones["values"] = modeles
@@ -536,15 +507,13 @@ def ouvrir_comptoir_facturation():
             pass
 
     def planifier_synchronisation_et_ecoute():
-        """Planifie l'envoi des factures et la réception des stocks toutes les 30 secondes."""
+        """Planifie l'envoi et la réception asynchrone toutes les 30 secondes."""
         if comptoir.winfo_exists():
-            # 1. Envoi ascendant (Factures PC -> Cloud)
             threading.Thread(target=synchroniser_file_cloud, daemon=True).start()
-            # 2. Réception descendante (Stocks Cloud -> Toutes les machines employés)
             threading.Thread(target=rafraichir_stocks_depuis_cloud, daemon=True).start()
             comptoir.after(30000, planifier_synchronisation_et_ecoute)
 
-    # Allumage immédiat des flux réseau
+    # Allumage immédiat des threads réseau en arrière-plan
     threading.Thread(target=synchroniser_file_cloud, daemon=True).start()
     threading.Thread(target=rafraichir_stocks_depuis_cloud, daemon=True).start()
     comptoir.after(30000, planifier_synchronisation_et_ecoute)
@@ -552,6 +521,7 @@ def ouvrir_comptoir_facturation():
     tk.Label(comptoir, text=f"{nom_boutique_fixe} - COMPTOIR DE FACTURATION", font=("Helvetica", 12, "bold"), bg="#0f766e", fg="white", pady=8).pack(fill=tk.X)
 
     def verifier_connexion_cloud():
+        """Effectue une vérification discrète de la liaison avec Render au démarrage."""
         try:
             reponse = requests.get(URL_API_KASHFLOW, timeout=4)
             if reponse.status_code == 200:
@@ -562,6 +532,7 @@ def ouvrir_comptoir_facturation():
             label_statut_cloud.config(text=" déconnecté 🔴", fg="#dc2626")
 
     def forcer_test_reseau():
+        """Bouton manuel pour forcer le diagnostic réseau et rafraîchir l'inventaire."""
         label_statut_cloud.config(text="🔄 Connexion en cours...", fg="#94a3b8")
         comptoir.update_idletasks()
         try:
@@ -576,6 +547,7 @@ def ouvrir_comptoir_facturation():
             label_statut_cloud.config(text="📡 CLOUD DÉCONNECTÉ (PAS D'INTERNET) 🔴", fg="#dc2626")
             messagebox.showwarning("Réseau Coupé", "Impossible de joindre le serveur. Fonctionnement local activé.")
 
+    # Zone d'affichage du statut Cloud sous le titre
     label_statut_cloud = tk.Label(comptoir, text="📡 VÉRIFICATION DU STATUT RÉSEAU...", font=("Helvetica", 10, "bold"), bg="#1e3a8a", fg="white")
     label_statut_cloud.pack(pady=2)
     
@@ -583,11 +555,15 @@ def ouvrir_comptoir_facturation():
     btn_test_reseau.pack(pady=2)
     
     comptoir.after(1000, verifier_connexion_cloud)
+# =====================================================================
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 7A SUR 7)
+# =====================================================================
+
     def action_bouton_enregistrer():
-        """Enregistre une vente, déduit le stock local et pousse l'opération vers l'écosystème Cloud."""
+        """Valide la saisie, applique la déduction fiscale et enregistre la vente."""
         caissiere_nom = str(NOM_CAISSIERE_ACTIVE).strip().lower()
         nom_client = entree_client.get().strip()
-        smartphone = liste_smartphones.get().strip()
+        smartphone = liste_smartphones.get().strip().lower()
         desc = entree_desc.get().strip()
         prix_txt = entree_prix.get().strip()
         qte_txt = entree_quantite.get().strip()
@@ -614,7 +590,7 @@ def ouvrir_comptoir_facturation():
                 applique_tva = 1 if var_tva_directe.get() else 0
             else:
                 applique_tva = data_base.obtenir_regime_tva_employe(caissiere_nom)
-            
+                
             calcul = operation.calculer_facture_dynamique(prix, qte, applique_tva)
             nom_boutique = data_base.recuperer_nom_boutique_sql() or "KASHFLOW_MANAGER"
             reference_locale = str(uuid.uuid4())
@@ -637,22 +613,17 @@ def ouvrir_comptoir_facturation():
                     "applique_tva_vente": int(applique_tva)
                 }
 
-                # Propulsion asynchrone instantanée vers la file réseau
                 threading.Thread(target=synchroniser_vente_cloud, args=(reference_locale, donnees_cloud), daemon=True).start()
-
-                succes_pdf = operation.generer_recu_pdf_industriel(
+                operation.generer_recu_pdf_industriel(
                     nom_boutique, num_facture, nom_client, smartphone, desc, qte,
-                    calcul["montant_ht"], calcul["valeur_tva"], calcul["total_ttc"],
-                    caissiere_nom
+                    calcul["montant_ht"], calcul["valeur_tva"], calcul["total_ttc"], caissiere_nom
                 )
 
-                if succes_pdf:
-                    if verif_stock["alerte_patron"]:
-                        messagebox.showwarning("Alerte Stock", f"⚠️ Stock critique pour '{smartphone}' ! Reste: {verif_stock['restant']} pcs (Seuil: {verif_stock['seuil']})")
-                    messagebox.showinfo("Succès", f"✅ Vente #{num_facture} émise avec succès !\nNom caissière : {caissiere_nom.upper()}")
-                else:
-                    messagebox.showerror("Erreur PDF", "Vente enregistrée mais erreur de génération du PDF.")
-
+                if verif_stock["alerte_patron"]:
+                    messagebox.showwarning("Alerte Stock", f"⚠️ Stock critique ! Reste: {verif_stock['restant']} pcs")
+                    
+                messagebox.showinfo("Succès", f"✅ Vente #{num_facture} émise avec succès !")
+                
                 entree_client.delete(0, tk.END)
                 entree_desc.delete(0, tk.END)
                 entree_prix.delete(0, tk.END)
@@ -662,6 +633,7 @@ def ouvrir_comptoir_facturation():
         except Exception as e:
             messagebox.showerror("Erreur Système", f"Une erreur s'est produite : {str(e)}")
 
+    # Construction du cadre de saisie principal du comptoir
     cadre = tk.Frame(comptoir, bg="#f8fafc", padx=15, pady=10)
     cadre.pack(fill=tk.BOTH, expand=True)
 
@@ -683,6 +655,10 @@ def ouvrir_comptoir_facturation():
     entree_prix.pack(fill=tk.X, pady=4)
 
     tk.Label(cadre, text="Quantité :", bg="#f8fafc", font=("Helvetica", 10, "bold")).pack(anchor=tk.W)
+# =====================================================================
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 7B-1 SUR 7)
+# =====================================================================
+
     entree_quantite = tk.Entry(cadre, font=("Helvetica", 11), bd=2)
     entree_quantite.pack(fill=tk.X, pady=4)
 
@@ -705,8 +681,8 @@ def ouvrir_comptoir_facturation():
 
     if SESSION_UTILISATEUR == "gerant":
         tk.Button(cadre_menu, text="📦 Stocks", bg="#0284c7", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_stock).pack(side=tk.LEFT, padx=3)
-        tk.Button(cadre_menu, text="📊 analyse", bg="#7c3aed", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_historique).pack(side=tk.LEFT, padx=3)
-        tk.Button(cadre_menu, text="⚙️ employer", bg="#ea580c", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_administration).pack(side=tk.LEFT, padx=3)
+        tk.Button(cadre_menu, text="📊 Analyse", bg="#7c3aed", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_historique).pack(side=tk.LEFT, padx=3)
+        tk.Button(cadre_menu, text="⚙️ Employés", bg="#ea580c", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_panneau_administration).pack(side=tk.LEFT, padx=3)
     else:
         tk.Button(cadre_menu, text="📊 HISTORIQUE DE VENTES", bg="#f59e0b", fg="white", font=("Helvetica", 9, "bold"), command=ouvrir_historique_caissiere).pack(side=tk.LEFT, padx=5)
     
@@ -754,7 +730,6 @@ def ouvrir_historique_caissiere():
         ventes = data_base.recuperer_ventes_par_caissiere(caissiere_nom)
         total_ttc = 0.0
 
-        # 🟢 CORRIGÉ : Parfait alignement sur le format tuple SQLite d'usine local
         for v in ventes:
             date_brute = str(v[4]).strip()
             garder = False
@@ -784,7 +759,13 @@ def ouvrir_historique_caissiere():
     arbre_historique.heading("ID", text="N°"); arbre_historique.heading("Client", text="CLIENT"); arbre_historique.heading("Article", text="ARTICLE"); arbre_historique.heading("Total TTC", text="NET TTC"); arbre_historique.heading("Date/Heure", text="TEMPOREL"); arbre_historique.heading("Caissière", text="EMETTEUR")
     arbre_historique.column("ID", width=40, anchor=tk.CENTER); arbre_historique.column("Client", width=120, anchor=tk.W); arbre_historique.column("Article", width=180, anchor=tk.W); arbre_historique.column("Total TTC", width=110, anchor=tk.CENTER); arbre_historique.column("Date/Heure", width=140, anchor=tk.CENTER); arbre_historique.column("Caissière", width=100, anchor=tk.CENTER)
     arbre_historique.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+# =====================================================================
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 7B-2 SUR 7)
+# =====================================================================
 
+# =====================================================================
+# MODULE 4 : app_visuel.py (Version Multi-Postes Pro - PARTIE 7B-2 SUR 7)
+# =====================================================================
 
 def verifier_acces():
     """Valide la session employé et lance l'assistant d'installation en 2 étapes au premier démarrage."""
@@ -842,12 +823,51 @@ def recuperer_mot_de_passe_oublie():
         messagebox.showerror("Accès Refusé", "Clé de secours invalide.")
 
 
+def action_telecharger_mise_a_jour():
+    """Interroge le Cloud Render, télécharge le nouveau code et remplace le fichier actuel à chaud."""
+    if not URL_API_KASHFLOW or not CLE_API_KASHFLOW:
+        messagebox.showerror("Réseau", "Configuration réseau manquante dans config.txt.")
+        return
+        
+    confirmation = messagebox.askyesno("Mise à jour à distance", "Voulez-vous vérifier si une mise à jour ou une nouvelle fonctionnalité est disponible pour votre boutique ?")
+    if not confirmation:
+        return
+
+    try:
+        reponse = requests.get(
+            f"{URL_API_KASHFLOW}/systeme/mise-a-jour",
+            headers={"X-API-Key": CLE_API_KASHFLOW},
+            timeout=10
+        )
+        
+        if reponse.status_code == 200:
+            donnees = reponse.json()
+            nouveau_code = donnees.get("code")
+            
+            if not nouveau_code or "import tkinter" not in nouveau_code:
+                messagebox.showerror("Erreur", "Le code reçu du serveur est incomplet ou corrompu.")
+                return
+                
+            chemin_local_actuel = os.path.abspath(__file__)
+            
+            # Remplacement à chaud du script d'interface sur la machine du client
+            with open(chemin_local_actuel, "w", encoding="utf-8") as f:
+                f.write(nouveau_code)
+                
+            messagebox.showinfo("Succès absolu", "🚀 KASHFLOW MANAGER a été mis à jour avec succès à distance !\n\nLe logiciel va redémarrer pour activer les nouvelles fonctionnalités.")
+            login.destroy()
+        else:
+            messagebox.showinfo("Logiciel à jour", "✨ Votre système KashFlow possède déjà la dernière version d'usine disponible.")
+    except Exception as e:
+        messagebox.showerror("Échec réseau", f"Impossible de joindre le serveur Cloud pour la mise à jour :\n{e}")
+
+
 # --- POINT DE DÉMARRAGE DE LA RACINE UNIQUE ---
 login = tk.Tk()
 FENETRE_PRINCIPALE_LOGIN = login
 
 login.title("Sécurité d'Accès")
-login.geometry("350x420")
+login.geometry("350x460") # Augmenté de 420 à 460 pour offrir une marge d'espace au nouveau bouton
 login.configure(bg="#1e293b")
 
 tk.Label(login, text="CONNEXION SÉCURISÉE", font=("Helvetica", 12, "bold"), bg="#1e293b", fg="white").pack(pady=20)
@@ -860,19 +880,18 @@ entree_user.pack(fill=tk.X, pady=5)
 entree_user.insert(0, "gerant")
 
 tk.Label(boite, text="Mot de passe secret :", bg="#1e293b", fg="#cbd5e1").pack(anchor=tk.W)
+
 # =====================================================================
 # ÉCRAN DE VERROUILLAGE SÉCURISÉ ET CONFIGURATION DU POINT DE DÉMARRAGE
 # =====================================================================
 
-# Champ de saisie du mot de passe secret
 entree_password = tk.Entry(boite, font=("Helvetica", 11), show="*", bd=2)
 entree_password.pack(fill=tk.X, pady=5)
 
-# 🚀 NAVIGATION CLAVIER RAPIDE : La touche Entrée gère le flux de connexion
 entree_user.bind("<Return>", lambda event: entree_password.focus())
 entree_password.bind("<Return>", lambda event: verifier_acces())
 
-# Bouton principal d'accès sécurisé au logiciel de caisse
+# 1. Bouton d'accès principal au comptoir
 tk.Button(
     login, 
     text="🔓 ACCÉDER AU COMPTOIR", 
@@ -880,9 +899,19 @@ tk.Button(
     bg="#3b82f6", 
     fg="white", 
     command=verifier_acces
-).pack(fill=tk.X, padx=30, pady=15)
+).pack(fill=tk.X, padx=30, pady=12)
 
-# Bouton de récupération et de réinitialisation du mot de passe gérant
+# 2. 🟢 INTERCONNEXION SAAS : Bouton de mise à jour à distance ancré sur la page de connexion
+tk.Button(
+    login, 
+    text="🔄 VÉRIFIER LES MISES À JOUR", 
+    font=("Helvetica", 10, "bold"), 
+    bg="#475569", 
+    fg="white", 
+    command=action_telecharger_mise_a_jour
+).pack(fill=tk.X, padx=30, pady=5)
+
+# 3. Bouton mot de passe oublié
 tk.Button(
     login, 
     text="❓ Mot de passe oublié / Réinitialiser", 
@@ -894,5 +923,5 @@ tk.Button(
     cursor="hand2"
 ).pack(pady=10)
 
-# Allumage de la boucle principale de l'interface d'usine
 login.mainloop()
+

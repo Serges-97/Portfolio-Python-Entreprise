@@ -221,3 +221,29 @@ def api_liste_des_employes():
         return {"employes": [str(emp).strip().lower() for emp in liste_employes]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+@app.get("/systeme/mise-a-jour", dependencies=[Depends(verifier_cle_api)])
+def api_distribuer_mise_a_jour():
+    """
+    📡 DISTRIBUTEUR DE CODE SOURCE :
+    Permet aux applications de caisse de télécharger à distance la dernière version de app_visuel.py.
+    """
+    try:
+        chemin_visuel = os.path.join(DOSSIER_DU_FICHIER, "app_visuel.py")
+        if not os.path.exists(chemin_visuel):
+            raise HTTPException(status_code=404, detail="Fichier de mise à jour introuvable sur le serveur.")
+            
+        # On lit le fichier de l'interface graphique en texte pur pour l'envoyer par le réseau
+        with open(chemin_visuel, "r", encoding="utf-8") as f:
+            code_source = f.read()
+            
+        return {
+            "statut": "Succès",
+            "version_cloud": "5.6",  # Tu pourras augmenter ce numéro quand tu feras des modifs
+            "code": code_source
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
