@@ -32,6 +32,7 @@ def charger_configuration_externe():
     dossier_prog = os.path.dirname(os.path.abspath(__file__))
     fichier_config = os.path.join(dossier_prog, "config.txt")
     
+    # 🟢 SÉCURITÉ CONSTRUCTEUR : Si le fichier n'existe pas, on crée le modèle propre d'usine
     if not os.path.exists(fichier_config):
         with open(fichier_config, "w", encoding="utf-8") as f:
             f.write("# CONFIGURATION RESEAU KASHFLOW MANAGER \n")
@@ -45,15 +46,21 @@ def charger_configuration_externe():
                 ligne_propre = ligne.strip()
                 if ligne_propre.startswith("#") or not ligne_propre:
                     continue
+                
+                # Détection dynamique du séparateur (soit un tiret, soit un signe égal)
                 separateur = "-" if "-" in ligne_propre else "="
                 if separateur in ligne_propre:
                     cle, valeur = ligne_propre.split(separateur, 1)
-                    if cle.strip() == "URL_API":
-                        URL_API_KASHFLOW = valeur.strip().rstrip("/")
-                    elif cle.strip() == "CLE_API":
-                        CLE_API_KASHFLOW = valeur.strip()
+                    cle_net = cle.strip()
+                    valeur_net = valeur.strip()
+                    
+                    if cle_net == "URL_API":
+                        URL_API_KASHFLOW = valeur_net.rstrip("/")
+                    elif cle_net == "CLE_API":
+                        CLE_API_KASHFLOW = valeur_net
     except Exception as e:
         print(f"[ERREUR CONFIG CONFIG.TXT] : {e}")
+
 
 # Exécution immédiate du chargeur au démarrage de la caisse
 charger_configuration_externe()
